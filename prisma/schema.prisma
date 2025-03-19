@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  sessions  Session[]
+  chats     Chat[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  expires   DateTime
+  sessionToken String   @unique @map("session_token")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Chat {
+  id          String       @id @default(cuid())
+  title       String
+  userId      String       @map("user_id")
+  strategyId  String       @map("strategy_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy    Strategy     @relation(fields: [strategyId], references: [id])
+  messages    Message[]
+  agentChats  AgentChat[]
+
+  @@map("chats")
+}
+
+model Strategy {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  chats       Chat[]
+
+  @@map("strategies")
+}
+
+model Agent {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  avatar      String
+  role        String
+  systemPrompt String     @map("system_prompt")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  agentChats  AgentChat[]
+
+  @@map("agents")
+}
+
+model AgentChat {
+  id        String   @id @default(cuid())
+  chatId    String   @map("chat_id")
+  agentId   String   @map("agent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, agentId])
+  @@map("agent_chats")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  role      String   // user, assistant, system
+  chatId    String   @map("chat_id")
+  agentId   String?  @map("agent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
