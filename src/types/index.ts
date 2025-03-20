@@ -36,16 +36,6 @@ export interface Agent {
     | 'quality' 
     | 'governance';
   
-  // Chat types
-  export interface Message {
-    id: string;
-    content: string;
-    role: 'user' | 'assistant' | 'system';
-    agentId?: string;
-    agentName?: string; 
-    agentAvatar?: string;
-    createdAt: Date;
-  }
   
   export interface Chat {
     id: string;
@@ -110,6 +100,32 @@ export interface Agent {
     apiUrl: string;
     apiKey: string;
     backendType: 'n8n' | 'custom';
+    n8nConnectionStatus: 'connected' | 'disconnected' | 'checking';
+    useDemoMode: boolean;
+  }
+  
+
+  // 4. You also need the Conversation interface if it's not already defined
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messages: Message[];
+  agentIds: string[];
+  strategyId: string;
+}
+  // Also add a Message type definition:
+  export interface Message {
+    id: string;
+    content: string;
+    role: 'user' | 'assistant' | 'system';
+    agentId?: string;
+    agentName?: string; 
+    agentAvatar?: string;
+    createdAt: Date;
+    type?: 'message' | 'thinking' | 'error' | 'summary';
+    timestamp?: Date;
   }
   
   export interface DatabaseSettings {
@@ -128,6 +144,48 @@ export interface Agent {
     settings: UserSettings;
     apiSettings: ApiSettings;
   }
+
+  export interface StoreState {
+    // Agents state
+    agents: Agent[];
+    selectedAgentIds: string[];
+    selectAgent: (agentId: string) => void;
+    unselectAgent: (agentId: string) => void;
+    
+    // Strategies state
+    strategies: Strategy[];
+    selectedStrategy: string;
+    setSelectedStrategy: (strategyId: string) => void;
+    
+    // Conversations state
+    conversations: Conversation[];
+    currentConversation: string | null;
+    messages: Message[];
+    addMessage: (message: Message) => void;
+    addMessages: (messages: Message[]) => void;
+    setCurrentConversation: (conversationId: string) => void;
+    
+    // UI state
+    isLeftSidebarOpen: boolean;
+    isRightSidebarOpen: boolean;
+    toggleLeftSidebar: () => void;
+    toggleRightSidebar: () => void;
+    
+    // Processing state
+    isProcessing: boolean;
+    conversationStatus: 'idle' | 'active' | 'complete' | 'error';
+    currentTurn: number;
+    setConversationStatus: (status: 'idle' | 'active' | 'complete' | 'error') => void;
+    resetConversation: () => void;
+    
+    // API Settings
+    apiSettings: ApiSettings;
+    updateApiSettings: (settings: Partial<ApiSettings>) => void;
+    
+    // Query submission
+    submitQuery: (query: string) => Promise<void>;
+  }
+  
   
   // Environment variables
   export interface EnvVariables {

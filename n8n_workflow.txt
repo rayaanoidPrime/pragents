@@ -1,0 +1,210 @@
+{
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "path": "data-engineering-agent",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "id": "function-process-request",
+      "name": "Process Agent Request",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "// Extract data from the request\nconst { selectedAgentIds, selectedStrategy, query } = $input.body;\n\n// Validate input\nif (!selectedAgentIds || !Array.isArray(selectedAgentIds) || selectedAgentIds.length === 0) {\n  return {\n    success: false,\n    error: 'No agents selected',\n    statusCode: 400\n  };\n}\n\nif (!query) {\n  return {\n    success: false,\n    error: 'Query is required',\n    statusCode: 400\n  };\n}\n\n// Map agent IDs to descriptions for context\nconst agentContext = {\n  'data-architect': 'Expert in designing data infrastructure and systems',\n  'pipeline-engineer': 'Expert in building efficient data pipelines',\n  'data-analyst': 'Expert in analyzing and interpreting complex data',\n  'data-scientist': 'Expert in applying statistical models and machine learning',\n  'data-governance': 'Expert in ensuring data quality and compliance',\n  'data-engineer': 'Expert in building and maintaining data infrastructure'\n};\n\n// Build context for selected agents\nconst selectedAgents = selectedAgentIds.map(id => ({\n  id,\n  context: agentContext[id] || `Expert in ${id.replace(/-/g, ' ')}`\n}));\n\n// Get strategy description\nlet strategyDescription = 'Sequential conversation where each agent responds in turn.';\nif (selectedStrategy === 'collaborative') {\n  strategyDescription = 'Collaborative approach where agents work together on the solution.';\n} else if (selectedStrategy === 'debate') {\n  strategyDescription = 'Debate format where agents may present different perspectives.';\n}\n\n// Format request for next step\nreturn {\n  selectedAgents,\n  query,\n  strategyDescription,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "id": "http-request-coordinator",
+      "name": "Coordinator Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": `You are a coordinator agent that distributes work among specialized data engineering agents. Your job is to create a plan based on the user query and determine which specialists should answer which parts of the query. The following agents are available: ${$node[\"function-process-request\"].json.selectedAgents.map(a => a.id).join(\", \")}. Strategy: ${$node[\"function-process-request\"].json.strategyDescription}`\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `User query: ${$node[\"function-process-request\"].json.query}\\n\\nPlease create a plan for how the selected agents should work together to answer this query.`\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "id": "function-process-coordinator",
+      "name": "Process Coordinator Response",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "// Extract coordinator response\nconst coordinatorResponse = $input.body.choices[0].message.content;\n\n// Create coordinator message\nconst coordinatorMessage = {\n  id: `msg-${Date.now()}-coordinator`,\n  content: coordinatorResponse,\n  role: 'assistant',\n  agentId: 'coordinator',\n  agentName: 'Coordinator',\n  timestamp: new Date()\n};\n\n// Return initial response with coordinator message\nreturn {\n  success: true,\n  messages: [coordinatorMessage],\n  selectedAgentIds: $node[\"function-process-request\"].json.selectedAgents.map(a => a.id),\n  query: $node[\"function-process-request\"].json.query,\n  status: 'in_progress'\n};"
+      },
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "id": "http-request-agents",
+      "name": "Agent Responses",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": `You are a team of data engineering specialists. Each specialist will provide their perspective on the user's query.\\n\\nThe coordinator has analyzed the query and provided the following plan: ${$node[\"function-process-coordinator\"].json.messages[0].content}`\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $node[\"function-process-request\"].json.query\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "id": "function-format-response",
+      "name": "Format Final Response",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "// Get the coordinator message\nconst coordinatorMessage = $node[\"function-process-coordinator\"].json.messages[0];\n\n// Extract agent responses\nconst aiResponse = $input.body.choices[0].message.content;\n\n// Parse agent responses from the AI output\nlet agentResponses = [];\nconst selectedAgents = $node[\"function-process-request\"].json.selectedAgents;\n\n// Simulate different agent responses by splitting the content\n// In a real implementation, you might use a more sophisticated approach\nconst chunks = aiResponse.split('\\n\\n').filter(chunk => chunk.trim().length > 0);\n\nfor (let i = 0; i < Math.min(chunks.length, selectedAgents.length); i++) {\n  const agent = selectedAgents[i];\n  agentResponses.push({\n    id: `msg-${Date.now()}-${agent.id}`,\n    content: chunks[i] || `As a ${agent.id.replace(/-/g, ' ')}, I can help with this aspect of the query...`,\n    role: 'assistant',\n    agentId: agent.id,\n    agentName: agent.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),\n    timestamp: new Date(Date.now() + (i * 1000))\n  });\n}\n\n// Add a final summary message\nconst finalMessage = {\n  id: `msg-${Date.now()}-final`,\n  content: `Based on all our specialized perspectives, here's a comprehensive answer to your query about \"${$node[\"function-process-request\"].json.query}\":\\n\\n${aiResponse.substring(0, Math.min(aiResponse.length, 500))}...`,\n  role: 'assistant',\n  agentId: 'data-architect', // Using a representative agent for the final message\n  agentName: 'Data Architect',\n  type: 'final',\n  timestamp: new Date(Date.now() + (selectedAgents.length * 1000))\n};\n\n// Combine all messages\nconst allMessages = [\n  coordinatorMessage,\n  ...agentResponses,\n  finalMessage\n];\n\nreturn {\n  success: true,\n  messages: allMessages,\n  status: 'completed'\n};"
+      },
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "id": "set-webhook-response",
+      "name": "Set Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "options": {
+          "responseBody": "={{ $node[\"function-format-response\"].json }}",
+          "responseCode": 200
+        }
+      },
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "function-process-request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "function-process-request": {
+      "main": [
+        [
+          {
+            "node": "http-request-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-request-coordinator": {
+      "main": [
+        [
+          {
+            "node": "function-process-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "function-process-coordinator": {
+      "main": [
+        [
+          {
+            "node": "http-request-agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-request-agents": {
+      "main": [
+        [
+          {
+            "node": "function-format-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "function-format-response": {
+      "main": [
+        [
+          {
+            "node": "set-webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -47,6 +47,7 @@
     "react-textarea-autosize": "^8.5.8",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "zustand": "^4.5.1"
   },
   "devDependencies": {

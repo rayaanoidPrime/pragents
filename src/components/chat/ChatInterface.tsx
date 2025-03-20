@@ -1,5 +1,6 @@
 "use client";
 
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { useState, useRef, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { 
@@ -14,34 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
-
-interface Agent {
-  id: string;
-  name: string;
-  avatar?: string;
-  color?: string;
-  description?: string;
-}
-
-interface Strategy {
-  id: string;
-  name: string;
-  description?: string;
-  maxTurns: number;
-  turnsBeforeFinalAnswer: number;
-  color?: string;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  role: "user" | "assistant" | "system";
-  agentId?: string;
-  agentName?: string;
-  agentAvatar?: string;
-  type?: string;
-  timestamp: Date;
-}
+import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
 
 interface NextQuestion {
   id: string;
@@ -50,34 +24,21 @@ interface NextQuestion {
 
 interface ChatInterfaceProps {
   isLoading?: boolean;
-  selectedAgents?: Agent[];
-  currentStrategy?: Strategy;
 }
 
-export function ChatInterface({ 
-  isLoading = false,
-  selectedAgents = [],
-  currentStrategy = {
-    id: "default",
-    name: "Data Pipeline",
-    description: "Create and optimize ETL/ELT data pipelines",
-    maxTurns: 10,
-    turnsBeforeFinalAnswer: 8
-  }
-}: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: nanoid(),
-      content: "Start a multi-agent conversation by entering a topic below.",
-      role: "system",
-      timestamp: new Date()
-    }
-  ]);
+export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
+  // Get data from store
+  const selectedAgents = useSelectedAgents();
+  const currentStrategy = useSelectedStrategy();
+  const messages = useStore((state) => state.messages);
+  const isProcessing = useStore((state) => state.isProcessing);
+  const conversationStatus = useStore((state) => state.conversationStatus);
+  const currentTurn = useStore((state) => state.currentTurn);
+  const submitQuery = useStore((state) => state.submitQuery);
+  const resetConversation = useStore((state) => state.resetConversation);
+  const setConversationStatus = useStore((state) => state.setConversationStatus);
 
   const [inputValue, setInputValue] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [conversationStatus, setConversationStatus] = useState<"idle" | "active" | "complete" | "error">("idle");
-  const [currentTurn, setCurrentTurn] = useState(0);
   const [nextQuestions, setNextQuestions] = useState<NextQuestion[]>([]);
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -109,219 +70,36 @@ export function ChatInterface({
   }, [inputValue]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isSending) return;
+    if (!inputValue.trim() || isProcessing) return;
     
-    // Add user message
-    const userMessage: Message = {
-      id: nanoid(),
-      content: inputValue,
-      role: "user",
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
+    // Submit query to n8n via our store action
+    await submitQuery(inputValue);
     setInputValue("");
-    setIsSending(true);
     
-    // If we are idle, we are starting a conversation
-    if (conversationStatus === "idle") {
-      setConversationStatus("active");
-      const systemMessage: Message = {
-        id: nanoid(),
-        content: `Starting a new conversation with ${selectedAgents.length} agents on topic: "${userMessage.content}"`,
-        role: "system",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, systemMessage]);
-      setCurrentTurn(1);
+    // Generate some follow-up questions based on the context
+    if (currentTurn >= 1 && selectedAgents.length > 0) {
+      setTimeout(() => {
+        const newQuestions: NextQuestion[] = [
+          { id: "q1", question: "What are the main challenges in this approach?" },
+          { id: "q2", question: "How should we implement this in our existing infrastructure?" },
+          { id: "q3", question: "What's the estimated timeline and resource requirements?" }
+        ];
+        setNextQuestions(newQuestions);
+      }, 1000);
     }
-    
-    // Simulate a random delay for each agent
-    const getRandomDelay = () => 800 + Math.random() * 1200;
-    
-    // "Coordinator" message
-    setTimeout(() => {
-      const coordinatorMessage: Message = {
-        id: nanoid(),
-        content: `I'll facilitate this discussion about "${userMessage.content}". Let's start by analyzing the key aspects of this topic.`,
-        role: "assistant",
-        agentId: "coordinator",
-        agentName: "Coordinator",
-        agentAvatar: "🧠",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, coordinatorMessage]);
-      
-      // Now each selected agent "thinks" then replies
-      const sendAgentResponses = async () => {
-        // Randomize the order to simulate concurrency
-        const randomizedAgents = [...selectedAgents].sort(() => Math.random() - 0.5);
-
-        // Show a "Thinking..." bubble for each
-        randomizedAgents.forEach(agent => {
-          const thinkingMessage: Message = {
-            id: nanoid(),
-            content: "Thinking...",
-            role: "assistant",
-            agentId: agent.id,
-            agentName: agent.name,
-            agentAvatar: agent.avatar,
-            type: "thinking",
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, thinkingMessage]);
-        });
-
-        // Then replace each "Thinking..." with an actual response
-        for (const agent of randomizedAgents) {
-          await new Promise(resolve => setTimeout(resolve, getRandomDelay()));
-          
-          // Create a custom response based on agent.id if you like:
-          const agentResponse = getAgentResponse(agent.id, userMessage.content);
-          
-          // Replace the "thinking" message with the final response
-          setMessages(prev =>
-            prev.map(msg => 
-              msg.type === "thinking" && msg.agentId === agent.id
-                ? {
-                    ...msg,
-                    id: nanoid(),
-                    content: agentResponse,
-                    type: undefined
-                  }
-                : msg
-            )
-          );
-        }
-
-        // Show next possible questions
-        setTimeout(() => {
-          const newQuestions: NextQuestion[] = [
-            { id: "q1", question: "What are the main challenges here?" },
-            { id: "q2", question: "How does this approach scale?" },
-            { id: "q3", question: "What's the estimated timeline?" }
-          ];
-          setNextQuestions(newQuestions);
-          setIsSending(false);
-        }, 1000);
-      };
-
-      sendAgentResponses();
-    }, 800);
   };
-
-  // Example function to produce a custom response per agent ID
-  function getAgentResponse(agentId: string, topic: string) {
-    switch (agentId) {
-      case "data-architect":
-        return `As a Data Architect, I'd focus on the high-level design for "${topic}" — including data lake vs. warehouse decisions, ingestion frameworks, and ensuring future scalability.`;
-      case "pipeline-engineer":
-        return `For "${topic}", I'd build a robust pipeline using Spark for processing and Airflow for orchestration. This ensures reliability and scalability in data movement.`;
-      case "data-analyst":
-        return `I'd start analyzing metrics around "${topic}", focusing on volume trends, data quality, and how to visualize insights for stakeholders.`;
-      case "data-scientist":
-        return `I see opportunities to apply ML models on "${topic}" to discover anomalies, forecast trends, and glean deeper insights.`;
-      case "data-governance":
-        return `We must ensure governance for "${topic}" by defining data ownership, implementing quality checks, and ensuring compliance with relevant regulations.`;
-      case "creative-writer":
-        return `Narratively, "${topic}" could be framed as a story: the starting challenges, the transformation, and the ultimate data-driven success.`;
-      case "code-expert":
-        return `Let me outline some code snippets for "${topic}" using Python and Spark to demonstrate how I'd implement the pipeline.`;
-      case "healthcare-specialist":
-        return `For healthcare data in "${topic}", I'd ensure HIPAA compliance, anonymization, and a strong emphasis on clinical outcomes.`;
-      default:
-        return `I'm analyzing "${topic}" from a general perspective, considering both technical and organizational factors.`;
-    }
-  }
 
   // Handle question selection
   const handleSelectQuestion = (questionId: string) => {
     const selectedQ = nextQuestions.find(q => q.id === questionId);
     if (!selectedQ) return;
     
-    // Add as user message
-    const userMessage: Message = {
-      id: nanoid(),
-      content: selectedQ.question,
-      role: "user",
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMessage]);
+    // Clear next questions
     setNextQuestions([]);
-    setIsSending(true);
-
-    // Increment turn
-    const newTurn = currentTurn + 1;
-    setCurrentTurn(newTurn);
-
-    if (newTurn >= currentStrategy.turnsBeforeFinalAnswer) {
-      // Approaching final answer
-      const systemMsg: Message = {
-        id: nanoid(),
-        content: "Preparing final analysis and recommendations...",
-        role: "system",
-        timestamp: new Date()
-      };
-      setTimeout(() => {
-        setMessages(prev => [...prev, systemMsg]);
-        // Some final coordinator message
-        setTimeout(() => {
-          const finalMsg: Message = {
-            id: nanoid(),
-            content: `Summarizing our discussion on "${selectedQ.question}". Here's our final recommendation...`,
-            role: "assistant",
-            agentId: "coordinator",
-            agentName: "Coordinator",
-            agentAvatar: "🧠",
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, finalMsg]);
-
-          // End
-          setTimeout(() => {
-            const randomAgent = selectedAgents[Math.floor(Math.random() * selectedAgents.length)];
-            const finalAnalysis: Message = {
-              id: nanoid(),
-              content: `## Final Analysis on "${selectedQ.question}"\n\nWe've considered multiple angles. The next steps involve X, Y, Z...`,
-              role: "assistant",
-              agentId: randomAgent?.id,
-              agentName: randomAgent?.name,
-              agentAvatar: randomAgent?.avatar,
-              type: "final",
-              timestamp: new Date()
-            };
-            setMessages(prev => [...prev, finalAnalysis]);
-            setConversationStatus("complete");
-            setIsSending(false);
-          }, 1500);
-        }, 1000);
-      }, 800);
-    } else {
-      // Continue conversation
-      setTimeout(() => {
-        const randomAgent = selectedAgents[Math.floor(Math.random() * selectedAgents.length)];
-        const response: Message = {
-          id: nanoid(),
-          content: `Regarding "${selectedQ.question}", I'd focus on the main priorities: resources, technical complexity, and business value.`,
-          role: "assistant",
-          agentId: randomAgent?.id,
-          agentName: randomAgent?.name,
-          agentAvatar: randomAgent?.avatar,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, response]);
-
-        setTimeout(() => {
-          const moreQuestions: NextQuestion[] = [
-            { id: "q4", question: "How should we prioritize these steps?" },
-            { id: "q5", question: "What are the biggest risks?" },
-            { id: "q6", question: "How do we measure success?" }
-          ];
-          setNextQuestions(moreQuestions);
-          setIsSending(false);
-        }, 1000);
-      }, 1500);
-    }
+    
+    // Submit the selected question
+    setInputValue(selectedQ.question);
+    setTimeout(() => handleSendMessage(), 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -419,7 +197,7 @@ export function ChatInterface({
         </div>
         
         <div className="mt-6 text-xs text-muted-foreground text-center">
-          Current Strategy: <span className="font-medium text-primary">{currentStrategy.name}</span> • {currentStrategy.description}
+          Current Strategy: <span className="font-medium text-primary">{currentStrategy?.name || 'None'}</span> • {currentStrategy?.description || 'Please select a strategy'}
         </div>
       </div>
     </div>
@@ -430,40 +208,48 @@ export function ChatInterface({
       <Card className="flex flex-col h-full w-full border-none shadow-none rounded-none">
         {/* Chat Header */}
         <div className="p-4 border-b bg-background/80 backdrop-blur-sm w-full">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold flex items-center">
-              <Brain className="mr-2 h-5 w-5 text-primary" />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Agent Discussion
-              </span>
-            </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold flex items-center">
+            <Brain className="mr-2 h-5 w-5 text-primary" />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+              Agent Discussion
+            </span>
+          </h2>
+          
+          {/* Add the ConnectionStatus component here */}
+          <div className="flex items-center gap-2">
+            <ConnectionStatus />
+            
             {conversationStatus === "active" && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-sm bg-primary/5 text-primary border-primary/20">
-                  <Clock className="h-3.5 w-3.5 mr-1" />
-                  <span>Turn {currentTurn} of {currentStrategy.maxTurns}</span>
-                </Badge>
+              <>
+                {currentStrategy && (
+                  <Badge variant="outline" className="text-sm bg-primary/5 text-primary border-primary/20">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    <span>Turn {currentTurn} of {currentStrategy.maxTurns}</span>
+                  </Badge>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
                   className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => setConversationStatus("idle")}
+                  onClick={() => resetConversation()}
                 >
                   End Conversation
                 </Button>
-              </div>
+              </>
             )}
           </div>
         </div>
+      </div>
         
         {/* Messages area - Full width */}
         <ScrollArea className="flex-1 px-4 py-6 w-full" ref={scrollAreaRef}>
-          {messages.length <= 1 ? (
+          {messages.length === 0 ? (
             <WelcomeMessage />
           ) : (
             <div className="space-y-6 pb-4 w-full">
               <AnimatePresence>
-                {messages.slice(1).map((msg) => (
+                {messages.map((msg) => (
                   <ChatMessage key={msg.id} message={msg} />
                 ))}
               </AnimatePresence>
@@ -492,7 +278,7 @@ export function ChatInterface({
                 }
                 className="min-h-[60px] max-h-[200px] pr-16 resize-none text-base w-full
                   border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4"
-                disabled={isSending || (conversationStatus === "active" && nextQuestions.length > 0)}
+                disabled={isProcessing || (conversationStatus === "active" && nextQuestions.length > 0)}
               />
               <div className="absolute right-3 bottom-3 flex space-x-1.5">
                 <Button
@@ -500,7 +286,7 @@ export function ChatInterface({
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isSending}
+                  disabled={isProcessing}
                 >
                   <Paperclip className="h-5 w-5" />
                   <span className="sr-only">Attach file</span>
@@ -510,7 +296,7 @@ export function ChatInterface({
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isSending}
+                  disabled={isProcessing}
                 >
                   <Mic className="h-5 w-5" />
                   <span className="sr-only">Voice input</span>
@@ -520,7 +306,7 @@ export function ChatInterface({
                   size="icon"
                   variant="ghost"
                   className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isSending}
+                  disabled={isProcessing}
                 >
                   <Code className="h-5 w-5" />
                   <span className="sr-only">Code snippet</span>
@@ -531,19 +317,28 @@ export function ChatInterface({
                   className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   disabled={
                     inputValue.trim() === "" ||
-                    isSending ||
-                    (conversationStatus === "active" && nextQuestions.length > 0)
+                    isProcessing ||
+                    (conversationStatus === "active" && nextQuestions.length > 0) ||
+                    selectedAgents.length === 0
                   }
                   onClick={handleSendMessage}
                 >
-                  <SendHorizontal className="h-5 w-5" />
+                  {isProcessing ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <SendHorizontal className="h-5 w-5" />
+                  )}
                   <span className="sr-only">Send</span>
                 </Button>
               </div>
             </>
           ) : conversationStatus === "complete" ? (
             <div className="flex space-x-4 w-full p-4">
-              <Button variant="outline" className="flex-1 border-primary/20 text-base py-6">
+              <Button 
+                variant="outline" 
+                className="flex-1 border-primary/20 text-base py-6"
+                onClick={() => resetConversation()}
+              >
                 <Brain className="h-5 w-5 mr-2 text-primary" />
                 New Conversation
               </Button>
@@ -557,7 +352,11 @@ export function ChatInterface({
               <p className="text-base text-destructive">
                 An error occurred. Please try starting a new conversation.
               </p>
-              <Button variant="outline" className="mt-4 text-base border-primary/20 py-6">
+              <Button 
+                variant="outline" 
+                className="mt-4 text-base border-primary/20 py-6"
+                onClick={() => resetConversation()}
+              >
                 Reset Conversation
               </Button>
             </div>

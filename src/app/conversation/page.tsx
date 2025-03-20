@@ -2,6 +2,7 @@
 
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AgentStrategyPanel } from "@/components/conversation/AgentStrategyPanel";
+import { N8nProvider } from "@/components/N8nProvider";
 import { useStore } from "@/store";
 
 export default function ConversationPage() {
@@ -19,19 +20,21 @@ export default function ConversationPage() {
   const currentStrategy = strategies.find(s => s.id === selectedStrategy) || strategies[0];
 
   return (
-    <div className="flex h-full">
-      {/* Left panel for agent/strategy selection (20% width) */}
-      <div className="w-1/5 border-r overflow-auto">
-        <AgentStrategyPanel />
+    <N8nProvider>
+      <div className="flex h-full">
+        {/* Left panel for agent/strategy selection (20% width) */}
+        <div className="w-1/5 border-r overflow-auto">
+          <AgentStrategyPanel />
+        </div>
+        
+        {/* Right area for chat interface (80% width) */}
+        <div className="w-4/5 p-4">
+          <ChatInterface 
+            selectedAgents={selectedAgents} 
+            currentStrategy={currentStrategy}
+          />
+        </div>
       </div>
-      
-      {/* Right area for chat interface (80% width) */}
-      <div className="w-4/5 p-4">
-        <ChatInterface 
-          selectedAgents={selectedAgents} 
-          currentStrategy={currentStrategy}
-        />
-      </div>
-    </div>
+    </N8nProvider>
   );
 }

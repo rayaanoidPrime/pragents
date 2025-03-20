@@ -1,0 +1,216 @@
+{
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "path": "data-engineering-agent",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "id": "python-process-request",
+      "name": "Process Request",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "python",
+        "code": "# Process the incoming request data\nimport json\nfrom datetime import datetime\n\n# Extract data from the request\nselected_agent_ids = $input.body.get('selectedAgentIds', [])\nselected_strategy = $input.body.get('selectedStrategy', '')\nquery = $input.body.get('query', '')\n\n# Validate input\nif not selected_agent_ids or not isinstance(selected_agent_ids, list) or len(selected_agent_ids) == 0:\n    return {\n        'success': False,\n        'error': 'No agents selected',\n        'statusCode': 400\n    }\n\nif not query:\n    return {\n        'success': False,\n        'error': 'Query is required',\n        'statusCode': 400\n    }\n\n# Map agent IDs to descriptions for context\nagent_context = {\n    'data-architect': 'Expert in designing data infrastructure and systems',\n    'pipeline-engineer': 'Expert in building efficient data pipelines',\n    'data-analyst': 'Expert in analyzing and interpreting complex data',\n    'data-scientist': 'Expert in applying statistical models and machine learning',\n    'data-governance': 'Expert in ensuring data quality and compliance',\n    'data-engineer': 'Expert in building and maintaining data infrastructure'\n}\n\n# Build context for selected agents\nselected_agents = [{\n    'id': agent_id,\n    'context': agent_context.get(agent_id, f\"Expert in {agent_id.replace('-', ' ')}\")\n} for agent_id in selected_agent_ids]\n\n# Get strategy description\nstrategy_description = 'Sequential conversation where each agent responds in turn.'\nif selected_strategy == 'collaborative':\n    strategy_description = 'Collaborative approach where agents work together on the solution.'\nelif selected_strategy == 'debate':\n    strategy_description = 'Debate format where agents may present different perspectives.'\n\n# Format request for next step\nreturn {\n    'selectedAgents': selected_agents,\n    'query': query,\n    'strategyDescription': strategy_description,\n    'timestamp': datetime.now().isoformat()\n}"
+      },
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "id": "http-request-coordinator",
+      "name": "Coordinator Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": `You are a coordinator agent that distributes work among specialized data engineering agents. Your job is to create a plan based on the user query and determine which specialists should answer which parts of the query. The following agents are available: ${$node[\"python-process-request\"].json.selectedAgents.map(a => a.id).join(\", \")}. Strategy: ${$node[\"python-process-request\"].json.strategyDescription}`\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `User query: ${$node[\"python-process-request\"].json.query}\\n\\nPlease create a plan for how the selected agents should work together to answer this query.`\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "id": "python-process-coordinator",
+      "name": "Process Coordinator Response",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "python",
+        "code": "# Process the coordinator response\nimport json\nimport uuid\nfrom datetime import datetime\n\n# Extract coordinator response\ncoordinator_response = $input.body['choices'][0]['message']['content']\n\n# Create a unique ID\nunique_id = str(uuid.uuid4())\n\n# Create coordinator message\ncoordinator_message = {\n    'id': f'msg-{unique_id}-coordinator',\n    'content': coordinator_response,\n    'role': 'assistant',\n    'agentId': 'coordinator',\n    'agentName': 'Coordinator',\n    'timestamp': datetime.now().isoformat()\n}\n\n# Return initial response with coordinator message\nreturn {\n    'success': True,\n    'messages': [coordinator_message],\n    'selectedAgentIds': [a['id'] for a in $node['python-process-request'].json['selectedAgents']],\n    'query': $node['python-process-request'].json['query'],\n    'status': 'in_progress'\n}"
+      },
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "id": "http-request-agents",
+      "name": "Agent Responses",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": `You are a team of data engineering specialists. Each specialist will provide their perspective on the user's query.\\n\\nThe coordinator has analyzed the query and provided the following plan: ${$node[\"python-process-coordinator\"].json.messages[0].content}`\n  },\n  {\n    \"role\": \"user\",\n    \"content\": $node[\"python-process-request\"].json.query\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "id": "python-format-responses",
+      "name": "Format Agent Responses",
+      "type": "n8n-nodes-base.code",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "python",
+        "code": "# Format the agent responses\nimport json\nimport uuid\nfrom datetime import datetime, timedelta\n\n# Get the coordinator message\ncoordinator_message = $node['python-process-coordinator'].json['messages'][0]\n\n# Extract agent responses\nai_response = $input.body['choices'][0]['message']['content']\n\n# Get selected agents information\nselected_agent_ids = $node['python-process-coordinator'].json['selectedAgentIds']\nselected_agents = $node['python-process-request'].json['selectedAgents']\n\n# Agent information map\nagent_info = {\n    'data-architect': {'name': 'Data Architect', 'avatar': '👨‍💻', 'color': '#4CAF50'},\n    'pipeline-engineer': {'name': 'Pipeline Engineer', 'avatar': '🔧', 'color': '#2196F3'},\n    'data-analyst': {'name': 'Data Analyst', 'avatar': '📊', 'color': '#FF9800'},\n    'data-scientist': {'name': 'Data Scientist', 'avatar': '🧪', 'color': '#9C27B0'},\n    'data-governance': {'name': 'Governance Specialist', 'avatar': '📋', 'color': '#F44336'},\n    'data-engineer': {'name': 'Data Engineer', 'avatar': '💻', 'color': '#607D8B'}\n}\n\n# Parse agent responses from the AI output\nagent_responses = []\n\n# Simulate different agent responses by splitting the content\n# In a real implementation, you might use a more sophisticated approach\nchunks = [chunk for chunk in ai_response.split('\\n\\n') if chunk.strip()]\n\ncurrent_time = datetime.now()\n\nfor i, agent_id in enumerate(selected_agent_ids):\n    if i < len(chunks):\n        agent_content = chunks[i]\n    else:\n        agent_content = f\"As a {agent_id.replace('-', ' ')}, I can help with this aspect of the query...\"\n    \n    agent_info_data = agent_info.get(agent_id, {\n        'name': agent_id.replace('-', ' ').title(), \n        'avatar': '🤖',\n        'color': '#6E6E6E'\n    })\n    \n    agent_responses.append({\n        'id': f'msg-{uuid.uuid4()}-{agent_id}',\n        'content': agent_content,\n        'role': 'assistant',\n        'agentId': agent_id,\n        'agentName': agent_info_data['name'],\n        'agentAvatar': agent_info_data['avatar'],\n        'timestamp': (current_time + timedelta(seconds=i*30)).isoformat()\n    })\n\n# Add a final summary message\nfinal_message = {\n    'id': f'msg-{uuid.uuid4()}-final',\n    'content': f\"Based on all our specialized perspectives, here's a comprehensive answer to your query about \\\"{$node['python-process-request'].json['query']}\\\":\\n\\n{ai_response}\",\n    'role': 'assistant',\n    'agentId': 'data-architect',  # Using a representative agent for the final message\n    'agentName': 'Data Architect',\n    'agentAvatar': '👨‍💻',\n    'type': 'final',\n    'timestamp': (current_time + timedelta(seconds=len(selected_agent_ids)*30)).isoformat()\n}\n\n# Combine all messages\nall_messages = [coordinator_message] + agent_responses + [final_message]\n\nreturn {\n    'success': True,\n    'messages': all_messages,\n    'status': 'completed'\n}"
+      },
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "id": "set-webhook-response",
+      "name": "Set Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "options": {
+          "responseBody": "={{ $node[\"python-format-responses\"].json }}",
+          "responseCode": 200
+        }
+      },
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "python-process-request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "python-process-request": {
+      "main": [
+        [
+          {
+            "node": "http-request-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-request-coordinator": {
+      "main": [
+        [
+          {
+            "node": "python-process-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "python-process-coordinator": {
+      "main": [
+        [
+          {
+            "node": "http-request-agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-request-agents": {
+      "main": [
+        [
+          {
+            "node": "python-format-responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "python-format-responses": {
+      "main": [
+        [
+          {
+            "node": "set-webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
