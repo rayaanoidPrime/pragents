@@ -123,6 +123,7 @@ export interface Conversation {
     agentId?: string;
     agentName?: string; 
     agentAvatar?: string;
+    agentColor?: string;
     createdAt: Date;
     type?: 'message' | 'thinking' | 'error' | 'summary';
     timestamp?: Date;

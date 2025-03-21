@@ -1,229 +1,338 @@
 "use client";
 
-import React from "react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import ReactMarkdown from "react-markdown";
-import { motion } from "framer-motion";
-import { CheckCircle2, AlertCircle, Info } from "lucide-react";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { MessageSquare, ThumbsUp, ThumbsDown, Copy, Check, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useState } from 'react';
 
-// Agent icon colors - vibrant colors for different agent types
-const agentColors = {
-  "data-architect": { color: "#4CAF50", bg: "#E8F5E9", avatar: "👨‍💻" }, // Green
-  "pipeline-engineer": { color: "#2196F3", bg: "#E3F2FD", avatar: "🔧" }, // Blue
-  "data-analyst": { color: "#FF9800", bg: "#FFF3E0", avatar: "📊" }, // Orange
-  "data-scientist": { color: "#9C27B0", bg: "#F3E5F5", avatar: "🧪" }, // Purple
-  "data-governance": { color: "#F44336", bg: "#FFEBEE", avatar: "📋" }, // Red
-  "creative-writer": { color: "#E91E63", bg: "#FCE4EC", avatar: "✍️" }, // Pink
-  "code-expert": { color: "#607D8B", bg: "#ECEFF1", avatar: "💻" }, // Blue Grey
-  "healthcare-specialist": { color: "#00BCD4", bg: "#E0F7FA", avatar: "🏥" }, // Cyan
-  "system": { color: "#795548", bg: "#EFEBE9", avatar: "💡" }, // Brown
-  "coordinator": { color: "#673AB7", bg: "#EDE7F6", avatar: "🧠" }, // Deep Purple
-};
-
-// Default colors for unknown agents
-const defaultAgentStyle = { color: "#6E6E6E", bg: "#F5F5F5", avatar: "🤖" };
-
-interface Message {
+export interface Message {
   id: string;
   content: string;
-  role: "user" | "assistant" | "system";
+  role: string;
   agentId?: string;
   agentName?: string;
+  agentColor?: string;
   agentAvatar?: string;
+  timestamp: Date;
+  isPending?: boolean;
+  hasCode?: boolean;
+  isCoordinator?: boolean;
+  turnNumber?: number;
   type?: string;
-  timestamp?: Date;
 }
 
 interface ChatMessageProps {
   message: Message;
-  isLastMessage?: boolean;
+  showFeedback?: boolean;
 }
 
-/**
- * Helper to fix Markdown content
- */
-function fixMarkdown(content: string) {
-  return content
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/\*\*\*\s*([^*]+?)\s*\*\*\*/g, '***$1***')
-    .replace(/\*\*\s*([^*]+?)\s*\*\*/g, '**$1**')
-    .replace(/^#+\s*([^#\n]+)/gm, (match) => {
-      return match.startsWith('# ') ? match : match.replace(/^#+/, h => `${h} `);
-    })
-    .replace(/^(\s*[-*+])\S/gm, '$1 ');
-}
+export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) {
+  const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
 
-export function ChatMessage({ message, isLastMessage = false }: ChatMessageProps) {
-  const isUser = message.role === "user";
-  const isSystem = message.role === "system" || !message.agentId || message.agentId === "system";
-  const isCoordinator = message.agentId === "coordinator";
-  const isFinal = message.type === "final";
-  const isThinking = message.type === "thinking";
-  const isError = message.type === "error";
-  
-  // Get agent style (colors, avatar)
-  const getAgentStyle = () => {
-    if (isSystem) return agentColors.system || defaultAgentStyle;
-    if (isCoordinator) return agentColors.coordinator || defaultAgentStyle;
-    if (message.agentId && agentColors[message.agentId as keyof typeof agentColors]) {
-      return agentColors[message.agentId as keyof typeof agentColors];
-    }
-    return defaultAgentStyle;
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-  
-  const agentStyle = getAgentStyle();
-  const timestamp = message.timestamp || new Date();
-  
-  // For system messages
-  if (isSystem) {
+
+  const handleLike = () => {
+    setLiked(!liked);
+    if (disliked) setDisliked(false);
+  };
+
+  const handleDislike = () => {
+    setDisliked(!disliked);
+    if (liked) setLiked(false);
+  };
+
+  const messageVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  };
+
+  // Custom renderer for code blocks in markdown
+  const components = {
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <div className="relative rounded-lg overflow-hidden my-3">
+          <div className="flex items-center justify-between bg-zinc-800 px-4 py-1.5 text-xs text-zinc-200">
+            <span>{match[1]}</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200"
+                    onClick={() => {
+                      navigator.clipboard.writeText(String(children));
+                    }}
+                  >
+                    <Copy size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy code</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <SyntaxHighlighter
+            language={match[1]}
+            style={vscDarkPlus}
+            customStyle={{ margin: 0, borderRadius: 0 }}
+            showLineNumbers
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      ) : (
+        <code className="bg-muted px-1.5 py-0.5 rounded text-sm" {...props}>
+          {children}
+        </code>
+      );
+    },
+    p({ children }: any) {
+      return <p className="mb-4 last:mb-0">{children}</p>;
+    },
+    ul({ children }: any) {
+      return <ul className="list-disc ml-6 mb-4 space-y-1">{children}</ul>;
+    },
+    ol({ children }: any) {
+      return <ol className="list-decimal ml-6 mb-4 space-y-1">{children}</ol>;
+    },
+    li({ children }: any) {
+      return <li className="mb-1">{children}</li>;
+    },
+    h3({ children }: any) {
+      return <h3 className="text-lg font-semibold mt-6 mb-3">{children}</h3>;
+    },
+    h4({ children }: any) {
+      return <h4 className="text-base font-semibold mt-4 mb-2">{children}</h4>;
+    },
+  };
+
+  // System message (errors, notifications)
+  if (message.role === 'system' || message.type === 'error') {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex justify-center my-3"
+        variants={messageVariants}
+        initial="hidden"
+        animate="visible"
+        className="mx-auto max-w-2xl"
+      >
+        <div className="flex items-center justify-center">
+          <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-lg flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <p className="text-sm">{message.content}</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // User message
+  if (message.role === 'user') {
+    return (
+      <motion.div
+        variants={messageVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex items-start justify-end gap-3 max-w-4xl ml-auto"
+      >
+        <div className="flex-1 max-w-xl">
+          <div className="bg-primary/10 dark:bg-primary/20 text-foreground p-4 rounded-xl rounded-tr-sm shadow-sm">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+          </div>
+          <div className="flex justify-end mt-1">
+            <span className="text-xs text-muted-foreground">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <MessageSquare className="h-4 w-4 text-primary" />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Coordinator message (special styling for coordinator)
+  if (message.isCoordinator || message.agentId === 'coordinator') {
+    return (
+      <motion.div
+        variants={messageVariants}
+        initial="hidden"
+        animate="visible"
+        className="mx-auto max-w-3xl my-6"
       >
         <div className={cn(
-          "px-5 py-3 rounded-xl max-w-[85%] text-sm font-medium",
-          isError 
-            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800" 
-            : "bg-gray-100 text-gray-700 dark:bg-gray-800/70 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+          "rounded-xl bg-primary/5 border border-primary/20 p-4 shadow-sm",
+          message.isPending && "opacity-75 border-dashed"
         )}>
-          <div className="flex items-center gap-2">
-            {isError && <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />}
-            {!isError && <Info className="h-4 w-4 text-gray-500 dark:text-gray-400" />}
-            {message.content}
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // For thinking messages (loading state)
-  if (isThinking) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex items-start space-x-3 my-4"
-      >
-        <div 
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-lg shadow-sm"
-          style={{ 
-            backgroundColor: agentStyle.bg,
-            color: agentStyle.color,
-            borderColor: agentStyle.color,
-            borderWidth: "1px",
-          }}
-        >
-          {message.agentAvatar || agentStyle.avatar}
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-[85%] border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center space-x-2">
-            <div className="font-medium text-gray-900 dark:text-white text-base">
-              {message.agentName || (message.agentId ? message.agentId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Agent')}
+          <div className="flex items-start">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 shrink-0 mt-1">
+              {message.agentAvatar || "👨‍💼"}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div className="flex-1">
+              <div className="flex items-center">
+                <h4 className="font-medium text-primary">{message.agentName || "Coordinator"}</h4>
+                <Badge 
+                  variant="outline" 
+                  className="ml-2 bg-primary/5 text-primary text-xs border-primary/20 px-1.5 py-0"
+                >
+                  System
+                </Badge>
+              </div>
+              {message.isPending ? (
+                <div className="mt-2 flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              ) : (
+                <div className="mt-2 prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                  <ReactMarkdown components={components}>
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              )}
             </div>
           </div>
-          <div className="mt-3 space-y-2">
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse w-3/4"></div>
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse w-1/2"></div>
-          </div>
         </div>
       </motion.div>
     );
   }
 
-  // For user messages
-  if (isUser) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex items-start justify-end space-x-3 my-4"
-      >
-        <div className="bg-blue-600 dark:bg-blue-700 text-white rounded-xl p-4 max-w-[85%] shadow-sm">
-          <div className="prose prose-sm dark:prose-invert max-w-none break-words text-base">
-            <ReactMarkdown>{fixMarkdown(message.content)}</ReactMarkdown>
-          </div>
-        </div>
-        
-        <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 font-bold text-base shadow-sm">
-          U
-        </div>
-      </motion.div>
-    );
-  }
-
-  // For agent messages
+  // Agent message (including thinking message)
   return (
     <motion.div
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex items-start space-x-3 my-4"
+      variants={messageVariants}
+      initial="hidden"
+      animate="visible"
+      className={cn(
+        "flex items-start gap-3 max-w-4xl",
+        message.isPending && "opacity-70"
+      )}
     >
-      <div 
-        className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-lg shadow-sm ${
-          isFinal ? 'ring-2 ring-offset-2 ring-green-500 dark:ring-green-400 dark:ring-offset-gray-900' : ''
-        }`}
-        style={{ 
-          backgroundColor: agentStyle.bg,
-          color: agentStyle.color,
-          borderColor: agentStyle.color,
-          borderWidth: "1px",
-        }}
-      >
-        {message.agentAvatar || agentStyle.avatar}
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 mt-1">
+        {message.agentAvatar || message.agentName?.[0] || "A"}
       </div>
-      
-      <div 
-        className={cn(
-          "rounded-xl p-4 mb-2 max-w-[85%] shadow-sm border",
-          isFinal
-            ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-            : isCoordinator
-              ? "bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800"
-              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-        )}
-      >
-        <div className="flex items-center space-x-2">
-          <div className="font-medium text-gray-900 dark:text-white text-base">
-            {message.agentName || (message.agentId ? message.agentId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Agent')}
-          </div>
-          
-          {isFinal && (
-            <Badge 
-              variant="outline" 
-              className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700 flex items-center h-6 px-2"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-              Final
+      <div className="flex-1">
+        <div className="flex items-center">
+          <h4 className="font-medium" style={{ color: message.agentColor || "#6366F1" }}>
+            {message.agentName || "Agent"}
+          </h4>
+          {message.isPending && (
+            <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-500 text-xs border-yellow-500/20">
+              <span className="animate-pulse">●</span>
+              <span className="ml-1">Typing...</span>
             </Badge>
           )}
-          
-          {isCoordinator && (
-            <Badge 
-              variant="outline" 
-              className="bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700 h-6 px-2"
-            >
-              Coordinator
-            </Badge>
+        </div>
+        <div
+          className={cn(
+            "mt-1.5 bg-card border rounded-xl p-4 text-sm shadow-sm",
+            message.isPending && "border-dashed"
           )}
-          
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
+        >
+          {message.isPending ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+              <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+            </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+              <ReactMarkdown components={components}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
         
-        <div className="mt-3 text-gray-700 dark:text-gray-300 prose prose-base dark:prose-invert max-w-none break-words text-base">
-          <ReactMarkdown>{fixMarkdown(message.content)}</ReactMarkdown>
-        </div>
+        {!message.isPending && showFeedback && (
+          <div className="flex items-center mt-1.5 text-xs text-muted-foreground justify-between">
+            <span>
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 w-7 rounded-full",
+                        liked ? "text-green-500 bg-green-500/10" : "text-muted-foreground hover:text-foreground"
+                      )}
+                      onClick={handleLike}
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{liked ? "Remove feedback" : "Helpful response"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 w-7 rounded-full",
+                        disliked ? "text-red-500 bg-red-500/10" : "text-muted-foreground hover:text-foreground"
+                      )}
+                      onClick={handleDislike}
+                    >
+                      <ThumbsDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{disliked ? "Remove feedback" : "Unhelpful response"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={cn(
+                        "h-7 w-7 rounded-full",
+                        copied ? "text-blue-500 bg-blue-500/10" : "text-muted-foreground hover:text-foreground"
+                      )}
+                      onClick={copyToClipboard}
+                    >
+                      {copied ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{copied ? "Copied!" : "Copy message"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

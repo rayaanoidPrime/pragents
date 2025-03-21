@@ -84,10 +84,6 @@ const defaultStrategies: Strategy[] = [
   }
 ];
 
-// Update your StoreState interface if needed in types/index.ts to include:
-// apiSettings: ApiSettings;
-// updateApiSettings: (settings: Partial<ApiSettings>) => void;
-
 export const useStore = create<StoreState>((set, get) => ({
   // API Settings
   apiSettings: initialApiSettings,
@@ -99,8 +95,6 @@ export const useStore = create<StoreState>((set, get) => ({
       }
     }));
   },
-
-
   
   // Agents state
   agents: defaultAgents,
@@ -151,8 +145,8 @@ export const useStore = create<StoreState>((set, get) => ({
   },
   
   // UI state
-  isLeftSidebarOpen: true,
-  isRightSidebarOpen: true,
+  isLeftSidebarOpen: false,
+  isRightSidebarOpen: false,
   toggleLeftSidebar: () => {
     set((state) => ({ isLeftSidebarOpen: !state.isLeftSidebarOpen }));
   },
@@ -185,9 +179,8 @@ export const useStore = create<StoreState>((set, get) => ({
       selectedStrategy, 
       addMessage, 
       addMessages,
-      messages,
       currentTurn,
-      apiSettings // Include apiSettings to check demo mode
+      apiSettings
     } = get();
     
     // Validate we have agents selected
@@ -203,7 +196,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
     
     // Add user message
-    const userMessage: Message = {
+    const userMessage = {
       id: uuidv4(),
       content: query,
       role: "user",
@@ -214,17 +207,19 @@ export const useStore = create<StoreState>((set, get) => ({
     // Set processing state
     set({ 
       isProcessing: true,
-      conversationStatus: messages.length > 0 ? 'active' : 'active',
+      conversationStatus: 'active',
       currentTurn: currentTurn + 1
     });
     
     // Add thinking message
-    const thinkingMessage: Message = {
+    const thinkingMessage = {
       id: `thinking-${Date.now()}`,
       content: "Thinking...",
       role: "assistant",
       agentId: "coordinator",
       agentName: "Coordinator",
+      agentAvatar: "🧠",
+      agentColor: "#9333EA",
       type: "thinking",
       createdAt: new Date()
     };
@@ -236,7 +231,7 @@ export const useStore = create<StoreState>((set, get) => ({
         selectedAgentIds,
         selectedStrategy,
         query,
-        apiSettings.useDemoMode // Pass demo mode flag
+        apiSettings.useDemoMode
       );
       
       // Remove thinking message
@@ -245,8 +240,47 @@ export const useStore = create<StoreState>((set, get) => ({
       }));
       
       if (response.success) {
-        // Add response messages
-        addMessages(response.messages);
+        // Extract the summary and filter out summary objects
+        let summaryContent = null;
+        const filteredMessages = [];
+        
+        response.messages.forEach(msg => {
+          if (msg.summary) {
+            // Store the summary content
+            summaryContent = msg.summary;
+          } else if (msg.agentId) {
+            // This is a regular agent message
+            filteredMessages.push({
+              ...msg,
+              id: uuidv4(),
+              role: "assistant",
+              turnNumber: currentTurn + 1,
+              createdAt: new Date()
+            });
+          }
+        });
+        
+        // Add all agent messages
+        addMessages(filteredMessages);
+        
+        // Add coordinator summary if we have one
+        if (summaryContent) {
+          setTimeout(() => {
+            addMessage({
+              id: uuidv4(),
+              content: summaryContent,  // Use the exact summary from n8n
+              role: "assistant",
+              agentId: "coordinator",
+              agentName: "Coordinator",
+              agentAvatar: "🧠",
+              agentColor: "#9333EA",
+              isCoordinator: true,
+              type: "summary",
+              turnNumber: currentTurn + 1,
+              createdAt: new Date()
+            });
+          }, 1000);
+        }
       } else {
         // Add error message
         addMessage({
@@ -275,11 +309,8 @@ export const useStore = create<StoreState>((set, get) => ({
     } finally {
       set({ isProcessing: false });
     }
-  }
+  },
 }));
-
-// Add these selector functions at the end of your store/index.ts file
-// after the useStore definition:
 
 // Selector for getting selected agents
 export const useSelectedAgents = () => {

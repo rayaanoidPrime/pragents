@@ -14,57 +14,42 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   // Zustand store controls for sidebar visibility
-  const isLeftSidebarOpen = useStore((state) => state.isLeftSidebarOpen);
-  const toggleLeftSidebar = useStore((state) => state.toggleLeftSidebar);
-  
+  // You can keep right sidebar controls as-is
   const isRightSidebarOpen = useStore((state) => state.isRightSidebarOpen);
   const toggleRightSidebar = useStore((state) => state.toggleRightSidebar);
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Left Sidebar - Fixed position */}
+      {/* Left Sidebar - Always closed */}
       <div 
-        className={cn(
-          "fixed left-0 top-0 h-full z-30 transition-all duration-300 ease-in-out",
-          isLeftSidebarOpen ? "w-64" : "w-16"
-        )}
+        className="fixed left-0 top-0 h-full z-30 transition-all duration-300 ease-in-out w-6"
       >
         <LeftSidebar />
       </div>
 
-      {/* Main Content Area - Adjusts based on sidebar states with proper margins */}
+      {/* Main Content Area - Left margin fixed as left sidebar is closed */}
       <div
         className={cn(
           "flex-1 overflow-hidden flex flex-col transition-all duration-300 ease-in-out",
-          isLeftSidebarOpen ? "ml-64" : "ml-16",
+          "ml-6", // always closed left sidebar margin
           isRightSidebarOpen ? "mr-64" : "mr-0"
         )}
-        style={{ width: "calc(100% - " + (isLeftSidebarOpen ? "64px" : "16px") + (isRightSidebarOpen ? " - 64px" : " - 0px") + ")" }}
+        style={{ 
+          width: "calc(100% - 16px" + (isRightSidebarOpen ? " - 64px" : " - 0px") + ")" 
+        }}
       >
-        {/* Toggle button for left sidebar */}
-        <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out"
-          style={{ left: isLeftSidebarOpen ? '260px' : '60px' }}
-        >
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-full bg-background shadow"
-            onClick={toggleLeftSidebar}
-          >
-            {isLeftSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-        </div>
-        
-        {/* Chat control bar (similar to LobeChat) */}
+
+        {/* Chat control bar */}
         <ChatControlBar />
-        
+
         {/* Main Content */}
         <div className="flex-1 overflow-auto px-10">
           {children}
         </div>
-        
+
         {/* Toggle button for right sidebar */}
-        <div className="fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out"
+        <div 
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out"
           style={{ right: isRightSidebarOpen ? '260px' : '10px' }}
         >
           <Button

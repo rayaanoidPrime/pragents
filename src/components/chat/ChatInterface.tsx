@@ -2,10 +2,11 @@
 
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { useState, useRef, useEffect } from "react";
-import { nanoid } from "nanoid";
+import { v4 as uuidv4 } from 'uuid';
 import { 
   Loader2, SendHorizontal, Paperclip, Mic, Code, 
-  Brain, Clock, MessageSquare, CornerDownRight, Sparkles 
+  Brain, Clock, MessageSquare, CornerDownRight, Sparkles,
+  RefreshCw, XCircle, ChevronDown, Bot
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -36,10 +37,14 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   const currentTurn = useStore((state) => state.currentTurn);
   const submitQuery = useStore((state) => state.submitQuery);
   const resetConversation = useStore((state) => state.resetConversation);
-  const setConversationStatus = useStore((state) => state.setConversationStatus);
+  const addMessage = useStore((state) => state.addMessage);
+  const apiSettings = useStore((state) => state.apiSettings);
 
   const [inputValue, setInputValue] = useState("");
   const [nextQuestions, setNextQuestions] = useState<NextQuestion[]>([]);
+  const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const [lastSummaryTurn, setLastSummaryTurn] = useState(0);
+  const [coordinatorProcessing, setCoordinatorProcessing] = useState(false);
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,6 +74,76 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   }, [inputValue]);
 
+  // Handle removing the thinking message when responses come in
+  useEffect(() => {
+    if (isProcessing) {
+      setCoordinatorProcessing(true);
+    } else if (!isProcessing && coordinatorProcessing) {
+      // Check if we need to add a summary
+      if (conversationStatus === "active" && currentTurn > 0 && currentTurn > lastSummaryTurn) {
+        setTimeout(() => {
+          // addCoordinatorSummary();
+        }, 1000);
+      }
+      setCoordinatorProcessing(false);
+    }
+  }, [isProcessing, currentTurn]);
+
+  // Add coordinator welcome message when conversation starts
+  useEffect(() => {
+    if (conversationStatus === "active" && !hasShownWelcome && selectedAgents.length > 0) {
+      // Check if we already have a coordinator message that's not a thinking message
+      const hasCoordinatorWelcome = messages.some(msg => 
+        msg.agentId === "coordinator" && 
+        msg.role === "assistant" && 
+        msg.type !== "thinking"
+      );
+      
+      if (!hasCoordinatorWelcome) {
+        const welcomeMessage = {
+          id: uuidv4(),
+          content: generateWelcomeMessage(selectedAgents),
+          role: "assistant",
+          agentId: "coordinator",
+          agentName: "Coordinator",
+          agentAvatar: "🧠",
+          agentColor: "#9333EA", // Purple color for coordinator
+          createdAt: new Date(),
+          type: "welcome"
+        };
+        
+        if (typeof addMessage === 'function') {
+          addMessage(welcomeMessage);
+          setHasShownWelcome(true);
+        }
+      } else {
+        setHasShownWelcome(true);
+      }
+    }
+    
+    // Reset when conversation is reset
+    if (conversationStatus === "idle" && hasShownWelcome) {
+      setHasShownWelcome(false);
+      setLastSummaryTurn(0);
+    }
+  }, [conversationStatus, selectedAgents, messages, hasShownWelcome, addMessage]);
+
+
+  // Filter messages to remove raw summary messages and preserve coordinator-formatted ones
+  const filterMessages = (messages: any[]) => {
+    return messages.filter(msg => msg.role !== 'summary');
+  };
+  
+  // Handle FAQ and follow-up question selection without auto-submitting
+  const handleQuestionSelect = (question: string) => {
+    setInputValue(question);
+    
+    // Focus the textarea after setting the value
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isProcessing) return;
     
@@ -87,19 +162,6 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
         setNextQuestions(newQuestions);
       }, 1000);
     }
-  };
-
-  // Handle question selection
-  const handleSelectQuestion = (questionId: string) => {
-    const selectedQ = nextQuestions.find(q => q.id === questionId);
-    if (!selectedQ) return;
-    
-    // Clear next questions
-    setNextQuestions([]);
-    
-    // Submit the selected question
-    setInputValue(selectedQ.question);
-    setTimeout(() => handleSendMessage(), 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -136,10 +198,16 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
               key={q.id}
               initial={{ scale: 0.95 }}
               whileHover={{ scale: 1.02 }}
-              className="bg-background text-left px-5 py-3.5 rounded-2xl border shadow-sm hover:bg-muted/50 transition-colors max-w-md"
-              onClick={() => handleSelectQuestion(q.id)}
+              className="bg-background text-left px-5 py-3.5 rounded-xl border shadow-sm hover:bg-muted/50 transition-colors max-w-md"
+              onClick={() => {
+                handleQuestionSelect(q.question);
+                setNextQuestions([]); // Clear the questions after selection
+              }}
             >
-              {q.question}
+              <div className="flex items-start">
+                <CornerDownRight className="h-4 w-4 mr-2 mt-1 text-primary" />
+                <span>{q.question}</span>
+              </div>
             </motion.button>
           ))}
         </div>
@@ -151,7 +219,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   const WelcomeMessage = () => (
     <div className="h-full flex flex-col items-center justify-center text-center p-8">
       <div className="text-6xl mb-6">💬</div>
-      <h3 className="text-2xl font-medium mb-3">
+      <h3 className="text-2xl font-medium mb-3 font-display">
         Start a multi-agent conversation
       </h3>
       <p className="text-muted-foreground max-w-md mb-8 text-lg">
@@ -159,38 +227,29 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       </p>
       
       <div className="w-full max-w-2xl">
-        <h4 className="font-medium text-primary flex items-center text-lg mb-5">
+        <h4 className="font-medium text-primary flex items-center text-lg mb-5 font-display">
           <MessageSquare className="h-5 w-5 mr-2" />
           Frequently Asked Questions
         </h4>
         
         <div className="grid grid-cols-1 gap-3 mt-4">
           <button 
-            className="bg-background text-left px-5 py-3.5 rounded-2xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
-            onClick={() => {
-              setInputValue("How would you design a scalable data pipeline architecture?");
-              setTimeout(() => handleSendMessage(), 100);
-            }}
+            className="bg-background text-left px-5 py-3.5 rounded-xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
+            onClick={() => handleQuestionSelect("How would you design a scalable data pipeline architecture?")}
           >
             How would you design a scalable data pipeline architecture?
           </button>
           
           <button 
-            className="bg-background text-left px-5 py-3.5 rounded-2xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
-            onClick={() => {
-              setInputValue("What are the best practices for data quality monitoring?");
-              setTimeout(() => handleSendMessage(), 100);
-            }}
+            className="bg-background text-left px-5 py-3.5 rounded-xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
+            onClick={() => handleQuestionSelect("What are the best practices for data quality monitoring?")}
           >
             What are the best practices for data quality monitoring?
           </button>
           
           <button 
-            className="bg-background text-left px-5 py-3.5 rounded-2xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
-            onClick={() => {
-              setInputValue("How should we approach migrating from batch to streaming data?");
-              setTimeout(() => handleSendMessage(), 100);
-            }}
+            className="bg-background text-left px-5 py-3.5 rounded-xl border shadow-sm hover:bg-muted/50 transition-colors w-full"
+            onClick={() => handleQuestionSelect("How should we approach migrating from batch to streaming data?")}
           >
             How should we approach migrating from batch to streaming data?
           </button>
@@ -203,67 +262,118 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     </div>
   );
 
+  // Process messages to preserve emojis/avatars and ensure coordinator appears
+  const processedMessages = messages.map(msg => {
+    // Ensure agent avatars are preserved
+    if (msg.role === "assistant" && msg.agentId !== "coordinator" && !msg.agentAvatar) {
+      const agent = selectedAgents.find(a => a.id === msg.agentId);
+      if (agent) {
+        return {
+          ...msg,
+          agentAvatar: agent.avatar,
+          agentColor: agent.color
+        };
+      }
+    }
+    
+    // Make sure the coordinator has correct type and avatar
+    if (msg.agentId === "coordinator") {
+      return {
+        ...msg,
+        agentAvatar: "🧠",
+        agentColor: "#9333EA", // Purple color
+        type: msg.type || "coordinator"
+      };
+    }
+    
+    return msg;
+  });
+
   return (
     <div className="flex flex-col h-full w-full">
       <Card className="flex flex-col h-full w-full border-none shadow-none rounded-none">
         {/* Chat Header */}
-        <div className="p-4 border-b bg-background/80 backdrop-blur-sm w-full">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold flex items-center">
-            <Brain className="mr-2 h-5 w-5 text-primary" />
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-              Agent Discussion
-            </span>
-          </h2>
-          
-          {/* Add the ConnectionStatus component here */}
-          <div className="flex items-center gap-2">
-            <ConnectionStatus />
+        <div className="p-3 border-b bg-background/90 backdrop-blur-sm w-full sticky top-0 z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold flex items-center font-display">
+              <Brain className="mr-2 h-5 w-5 text-primary" />
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Agent Discussion
+              </span>
+            </h2>
             
-            {conversationStatus === "active" && (
-              <>
-                {currentStrategy && (
-                  <Badge variant="outline" className="text-sm bg-primary/5 text-primary border-primary/20">
-                    <Clock className="h-3.5 w-3.5 mr-1" />
-                    <span>Turn {currentTurn} of {currentStrategy.maxTurns}</span>
-                  </Badge>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  onClick={() => resetConversation()}
-                >
-                  End Conversation
-                </Button>
-              </>
-            )}
+            {/* Add the ConnectionStatus component with improved styling */}
+            <div className="flex items-center gap-2">
+              <ConnectionStatus />
+              
+              {conversationStatus === "active" && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20 px-2 py-0.5">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span className="text-xs">Turn {currentTurn}/{currentStrategy?.maxTurns || '?'}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Current turn in the conversation</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => resetConversation()}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        <span className="sr-only">End Conversation</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>End current conversation</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </div>
         </div>
-      </div>
         
         {/* Messages area - Full width */}
         <ScrollArea className="flex-1 px-4 py-6 w-full" ref={scrollAreaRef}>
-          {messages.length === 0 ? (
-            <WelcomeMessage />
-          ) : (
-            <div className="space-y-6 pb-4 w-full">
-              <AnimatePresence>
-                {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
-                ))}
-              </AnimatePresence>
-              
-              {/* Next questions */}
-              {nextQuestions.length > 0 && conversationStatus === "active" && (
-                <NextQuestionsPanel />
-              )}
-            </div>
-          )}
-        </ScrollArea>
+        {processedMessages.length === 0 ? (
+          <WelcomeMessage />
+        ) : (
+          <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
+            <AnimatePresence>
+              {filterMessages(processedMessages).map((msg) => (
+                <ChatMessage 
+                  key={msg.id} 
+                  message={{
+                    ...msg,
+                    timestamp: new Date(msg.createdAt),
+                    isPending: msg.type === "thinking",
+                    hasCode: msg.content?.includes('```'),
+                    isCoordinator: msg.agentId === "coordinator"
+                  }} 
+                  showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
+                />
+              ))}
+            </AnimatePresence>
+            
+            {/* Next questions */}
+            {nextQuestions.length > 0 && conversationStatus === "active" && (
+              <NextQuestionsPanel />
+            )}
+          </div>
+        )}
+      </ScrollArea>
         
         {/* Input area - Full width */}
-        <div className="border-t bg-background/80 backdrop-blur-sm w-full relative">
+        <div className="border-t bg-background/90 backdrop-blur-sm w-full relative">
           {conversationStatus === "idle" || conversationStatus === "active" ? (
             <>
               <Textarea
@@ -277,74 +387,103 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
                     : "Ask a follow-up question..."
                 }
                 className="min-h-[60px] max-h-[200px] pr-16 resize-none text-base w-full
-                  border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4"
-                disabled={isProcessing || (conversationStatus === "active" && nextQuestions.length > 0)}
+                  border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
+                disabled={isProcessing}
               />
               <div className="absolute right-3 bottom-3 flex space-x-1.5">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isProcessing}
-                >
-                  <Paperclip className="h-5 w-5" />
-                  <span className="sr-only">Attach file</span>
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isProcessing}
-                >
-                  <Mic className="h-5 w-5" />
-                  <span className="sr-only">Voice input</span>
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                  disabled={isProcessing}
-                >
-                  <Code className="h-5 w-5" />
-                  <span className="sr-only">Code snippet</span>
-                </Button>
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={
-                    inputValue.trim() === "" ||
-                    isProcessing ||
-                    (conversationStatus === "active" && nextQuestions.length > 0) ||
-                    selectedAgents.length === 0
-                  }
-                  onClick={handleSendMessage}
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <SendHorizontal className="h-5 w-5" />
-                  )}
-                  <span className="sr-only">Send</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                        disabled={isProcessing}
+                      >
+                        <Paperclip className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Attach file</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                        disabled={isProcessing}
+                      >
+                        <Mic className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Voice input</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                        disabled={isProcessing}
+                      >
+                        <Code className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Code snippet</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                        disabled={
+                          inputValue.trim() === "" ||
+                          isProcessing ||
+                          selectedAgents.length === 0
+                        }
+                        onClick={handleSendMessage}
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <SendHorizontal className="h-5 w-5" />
+                        )}
+                        <span className="sr-only">Send</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Send message</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </>
           ) : conversationStatus === "complete" ? (
             <div className="flex space-x-4 w-full p-4">
               <Button 
                 variant="outline" 
-                className="flex-1 border-primary/20 text-base py-6"
+                className="flex-1 border-primary/20 text-base py-5 rounded-lg"
                 onClick={() => resetConversation()}
               >
-                <Brain className="h-5 w-5 mr-2 text-primary" />
+                <RefreshCw className="h-5 w-5 mr-2 text-primary" />
                 New Conversation
               </Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-6">
+              <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-5 rounded-lg">
                 <Sparkles className="h-5 w-5 mr-2" />
-                Save Conversation
+                Save Discussion
               </Button>
             </div>
           ) : (
@@ -354,7 +493,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
               </p>
               <Button 
                 variant="outline" 
-                className="mt-4 text-base border-primary/20 py-6"
+                className="mt-4 text-base border-primary/20 py-5 rounded-lg"
                 onClick={() => resetConversation()}
               >
                 Reset Conversation
@@ -365,4 +504,73 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       </Card>
     </div>
   );
+}
+
+// Helper function to generate welcome message
+function generateWelcomeMessage(agents: any[]) {
+  return `
+### Welcome to this multi-agent discussion
+
+I'll be your coordinator for this conversation, helping to organize the insights from our specialists:
+
+${agents.map(agent => `- **${agent.name}**: ${agent.description || `Specialized in ${agent.id.replace(/-/g, ' ')}`}`).join('\n')}
+
+Each agent will contribute based on their expertise. I'll provide summaries and help keep the discussion focused.
+
+Let's begin our exploration of this topic.
+  `;
+}
+
+// Helper function to generate summary message based on messages
+function generateSummaryMessage(messages: any[], currentTurn: number) {
+  if (messages.length === 0) {
+    return `
+### Summary
+
+The agents are still formulating their responses. I'll provide a summary once they've shared their insights.
+    `;
+  }
+  
+  // Group messages by agent
+  const agentMessages: Record<string, any[]> = {};
+  
+  messages.forEach(msg => {
+    if (!agentMessages[msg.agentId]) {
+      agentMessages[msg.agentId] = [];
+    }
+    agentMessages[msg.agentId].push(msg);
+  });
+  
+  // Create summary points for each agent
+  const summaryPoints = Object.entries(agentMessages).map(([agentId, msgs]) => {
+    const agentName = msgs[0].agentName || 'Agent';
+    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content)}`;
+  }).join('\n');
+  
+  return `
+### Summary
+
+${summaryPoints}
+
+These insights provide a comprehensive approach to addressing this data engineering challenge.
+  `;
+}
+
+// Helper function to extract key point from a message
+function getKeyPointFromMessage(content: string): string {
+  // This is a simplified extraction - in a real implementation you might
+  // use more sophisticated NLP to extract the main point
+  
+  // Remove markdown formatting
+  const plainText = content.replace(/\*\*|__|\*|_|##+|\[.*?\]\(.*?\)/g, '');
+  
+  // Get the first sentence that's substantial
+  const sentences = plainText.split(/\.\s+/);
+  const firstGoodSentence = sentences.find(s => s.length > 20) || sentences[0];
+  
+  if (firstGoodSentence.length > 100) {
+    return firstGoodSentence.substring(0, 97) + '...';
+  }
+  
+  return firstGoodSentence;
 }

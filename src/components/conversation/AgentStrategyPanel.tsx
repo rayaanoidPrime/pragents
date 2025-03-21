@@ -7,12 +7,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Users, Layers, Plus } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
+import { Search, Users, Layers, Plus, BarChart2, Code, Palette, Stethoscope } from "lucide-react";
 import { AgentSelector } from "../agents/AgentSelector";
 import { StrategySelector } from "../strategies/StrategySelector";
 
 export function AgentStrategyPanel() {
   const [activeTab, setActiveTab] = useState<string>("agents");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  
   const selectedAgentIds = useStore((state) => state.selectedAgentIds);
   const selectedStrategy = useStore((state) => state.selectedStrategy);
   const strategies = useStore((state) => state.strategies);
@@ -51,6 +56,8 @@ export function AgentStrategyPanel() {
         <Input 
           placeholder={activeTab === "agents" ? "Search agents..." : "Search strategies..."} 
           className="border-none h-8 p-0 focus-visible:ring-0"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
       
@@ -59,19 +66,82 @@ export function AgentStrategyPanel() {
         {activeTab === "agents" && (
           <ScrollArea className="h-full">
             <div className="p-3">
+              {/* Agent category filters */}
+              <div className="mb-4">
+                <ToggleGroup
+                  type="single"
+                  value={categoryFilter}
+                  onValueChange={value => value && setCategoryFilter(value)}
+                  className="justify-start flex-wrap gap-1"
+                >
+                  <ToggleGroupItem
+                    value="all"
+                    className={cn(
+                      "rounded-md text-xs px-2 py-1 h-auto",
+                      categoryFilter === "all" && "bg-primary/10 text-primary border-primary/20"
+                    )}
+                  >
+                    All
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="healthcare"
+                    className={cn(
+                      "rounded-md h-auto",
+                      categoryFilter === "healthcare" && "bg-cyan-100 text-cyan-800 border-cyan-500"
+                    )}
+                    title="Healthcare"
+                  >
+                    <Stethoscope className="h-3.5 w-3.5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="analyst"
+                    className={cn(
+                      "rounded-md h-auto",
+                      categoryFilter === "analyst" && "bg-orange-100 text-orange-800 border-orange-500"
+                    )}
+                    title="Data Analyst"
+                  >
+                    <BarChart2 className="h-3.5 w-3.5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="creative"
+                    className={cn(
+                      "rounded-md h-auto",
+                      categoryFilter === "creative" && "bg-pink-100 text-pink-800 border-pink-500"
+                    )}
+                    title="Creative"
+                  >
+                    <Palette className="h-3.5 w-3.5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="technical"
+                    className={cn(
+                      "rounded-md h-auto",
+                      categoryFilter === "technical" && "bg-blue-100 text-blue-800 border-blue-500"
+                    )}
+                    title="Technical"
+                  >
+                    <Code className="h-3.5 w-3.5" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
+              {/* Selected Agents */}
               <div className="mb-4 p-3 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
                 <h3 className="text-sm font-medium text-primary mb-2">
                   Selected Agents ({selectedAgentIds.length}/{MAX_AGENTS})
                 </h3>
                 {selectedAgentIds.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Select agents to start a conversation
+                    Select up to {MAX_AGENTS} agents to start a conversation
                   </p>
                 ) : (
                   <AgentSelector mode="selected" />
                 )}
               </div>
-              <AgentSelector mode="all" />
+              
+              {/* Use the AgentSelector component that already works */}
+              <AgentSelector mode="all" searchQuery={searchQuery} categoryFilter={categoryFilter} />
               
               <Button 
                 variant="ghost" 
@@ -113,7 +183,8 @@ export function AgentStrategyPanel() {
                 </div>
               )}
               
-              <StrategySelector />
+              {/* Use the StrategySelector component */}
+              <StrategySelector searchQuery={searchQuery} />
             </div>
           </ScrollArea>
         )}
