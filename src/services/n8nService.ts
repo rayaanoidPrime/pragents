@@ -33,6 +33,8 @@ export const n8nService = {
     query: string,
     useDemoMode = false
   ): Promise<N8nResponse> {
+    const { apiSettings } = useStore.getState();
+    const { n8nWorkflowType } = apiSettings;
     // If in demo mode, return demo responses
     if (useDemoMode) {
       return this.generateDemoResponses(selectedAgentIds, strategyId, query);

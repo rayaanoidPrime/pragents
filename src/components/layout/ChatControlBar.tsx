@@ -43,7 +43,7 @@ export function ChatControlBar() {
         </Button>
       </div>
       
-      <div className="flex items-center gap-1">
+      {/* <div className="flex items-center gap-1">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -98,7 +98,7 @@ export function ChatControlBar() {
             <TooltipContent>Chat Settings</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </div>
+      </div> */}
     </div>
   );
 }

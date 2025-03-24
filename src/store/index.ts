@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { Agent, Message, Strategy, Conversation, ApiSettings } from '@/types';
 import { n8nService } from '@/services/n8nService';
+import { connectionValidator } from '@/services/connectionValidator';
 
 // Initial API settings with n8n connection status
 const initialApiSettings: ApiSettings = {
@@ -10,7 +11,11 @@ const initialApiSettings: ApiSettings = {
   apiKey: process.env.NEXT_PUBLIC_AGENT_API_KEY || '',
   backendType: 'n8n',
   n8nConnectionStatus: 'disconnected',
-  useDemoMode: false
+  n8nWorkflowType: 'default', // Specify which n8n workflow to use
+  useDemoMode: false,
+  // Connection validation fields
+  connectionStatus: 'disconnected',
+  connectionError: null
 };
 
 // Mock agents data
@@ -94,6 +99,64 @@ export const useStore = create<StoreState>((set, get) => ({
         ...settings
       }
     }));
+  },
+  
+  // Connection validation actions
+  validateConnection: async () => {
+    const { apiSettings } = get();
+    const { backendType, useDemoMode, n8nWorkflowType } = apiSettings;
+    
+    set({ isProcessing: true });
+    
+    try {
+      const result = await connectionValidator.validateConnection(
+        backendType, 
+        useDemoMode,
+        n8nWorkflowType
+      );
+      
+      set((state) => ({
+        apiSettings: {
+          ...state.apiSettings,
+          connectionStatus: result.success ? 'connected' : 'disconnected',
+          connectionError: result.success ? null : result.message,
+          // Also update n8n status if it's n8n backend
+          ...(backendType === 'n8n' ? { n8nConnectionStatus: result.success ? 'connected' : 'disconnected' } : {})
+        },
+        isProcessing: false
+      }));
+      
+      return result.success;
+    } catch (error) {
+      set((state) => ({
+        apiSettings: {
+          ...state.apiSettings,
+          connectionStatus: 'disconnected',
+          connectionError: error instanceof Error ? error.message : 'Unknown connection error',
+          // Also update n8n status if it's n8n backend
+          ...(backendType === 'n8n' ? { n8nConnectionStatus: 'disconnected' } : {})
+        },
+        isProcessing: false
+      }));
+      
+      return false;
+    }
+  },
+  
+  setBackendType: async (backendType: string, workflowType: string = 'default', useDemoMode: boolean = false) => {
+    set((state) => ({
+      apiSettings: {
+        ...state.apiSettings,
+        backendType,
+        n8nWorkflowType: workflowType,
+        useDemoMode,
+        connectionStatus: 'disconnected', // Reset connection status
+        connectionError: null
+      }
+    }));
+    
+    // Validate the connection
+    return get().validateConnection();
   },
   
   // Agents state
@@ -180,7 +243,8 @@ export const useStore = create<StoreState>((set, get) => ({
       addMessage, 
       addMessages,
       currentTurn,
-      apiSettings
+      apiSettings,
+      validateConnection
     } = get();
     
     // Validate we have agents selected
@@ -193,6 +257,23 @@ export const useStore = create<StoreState>((set, get) => ({
         createdAt: new Date()
       });
       return;
+    }
+    
+    // Validate connection before submitting
+    if (!apiSettings.useDemoMode && apiSettings.connectionStatus !== 'connected') {
+      // Try to validate connection first
+      const isConnected = await validateConnection();
+      
+      if (!isConnected) {
+        addMessage({
+          id: uuidv4(),
+          content: `Cannot submit query: ${apiSettings.connectionError || 'Not connected to backend'}`,
+          role: "system",
+          type: "error",
+          createdAt: new Date()
+        });
+        return;
+      }
     }
     
     // Add user message
@@ -226,12 +307,13 @@ export const useStore = create<StoreState>((set, get) => ({
     addMessage(thinkingMessage);
     
     try {
-      // Submit to n8n with useDemoMode flag
+      // Submit to n8n with workflow type
       const response = await n8nService.submitQuery(
         selectedAgentIds,
         selectedStrategy,
         query,
-        apiSettings.useDemoMode
+        apiSettings.useDemoMode,
+        apiSettings.n8nWorkflowType // Pass workflow type to n8n service
       );
       
       // Remove thinking message

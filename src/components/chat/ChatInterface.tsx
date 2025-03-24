@@ -1,6 +1,6 @@
 "use client";
 
-import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { ConnectionSelector } from '@/components/ConnectionSelector';
 import { useState, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { 
@@ -304,9 +304,9 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
             
             {/* Add the ConnectionStatus component with improved styling */}
             <div className="flex items-center gap-2">
-              <ConnectionStatus />
+              <ConnectionSelector />
               
-              {conversationStatus === "active" && (
+              {/* {conversationStatus === "active" && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -337,7 +337,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              )}
+              )} */}
             </div>
           </div>
         </div>
