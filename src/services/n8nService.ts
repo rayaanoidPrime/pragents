@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '@/types';
 import { it } from 'node:test';
+import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
 
 // Environment variable with fallback for n8n URL
 const N8N_BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:5678';
