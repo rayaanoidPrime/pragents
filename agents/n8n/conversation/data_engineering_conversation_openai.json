@@ -1,20 +1,17 @@
 {
-  "name": "DataEngg-Agent",
+  "name": "data-engineering-conversation-openai",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
+        "multipleMethods": true,
+        "httpMethod": [
+          "POST",
+          "GET"
+        ],
         "path": "data-engineering-agent",
         "responseMode": "responseNode",
         "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Access-Control-Allow-Origin",
-                "value": "*"
-              }
-            ]
-          }
+          "allowedOrigins": "*"
         }
       },
       "id": "5453af0e-b64d-4350-84ac-8850b1348cf0",
@@ -22,8 +19,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -1120,
-        480
+        -1260,
+        220
       ],
       "webhookId": "87f6c8c3-55de-4661-8fd9-2727490b076f"
     },
@@ -35,8 +32,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -820,
-        480
+        -740,
+        80
       ],
       "id": "5532c320-992d-417a-ad0e-e0df2fa30606",
       "name": "Process Agent Request"
@@ -60,8 +57,8 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
       "position": [
-        460,
-        80
+        72,
+        360
       ],
       "id": "3e6d07cf-4c26-4f7f-a047-05743d2dcc42",
       "name": "Basic LLM Chain"
@@ -79,8 +76,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        500,
-        660
+        160,
+        580
       ],
       "id": "6d639fbb-f7d4-48f5-aa89-65bddd403954",
       "name": "OpenAI Chat Model",
@@ -99,8 +96,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        920,
-        80
+        448,
+        360
       ],
       "id": "3d187f6b-7a96-4670-baea-c70318cd5ff1",
       "name": "Code"
@@ -113,8 +110,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1460,
-        400
+        740,
+        460
       ],
       "id": "20959e8a-f6f2-4aff-958e-ab3558f9ea87",
       "name": "Respond to Webhook"
@@ -129,8 +126,8 @@
       "name": "Aggregate",
       "type": "n8n-nodes-base.aggregate",
       "position": [
-        140,
-        0
+        -148,
+        360
       ],
       "typeVersion": 1,
       "alwaysOutputData": true
@@ -146,8 +143,8 @@
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -300,
-        -80
+        -871.5,
+        283
       ],
       "typeVersion": 1
     },
@@ -159,8 +156,8 @@
       "name": "Chat Memory Manager",
       "type": "@n8n/n8n-nodes-langchain.memoryManager",
       "position": [
-        -240,
-        0
+        -524,
+        360
       ],
       "typeVersion": 1,
       "alwaysOutputData": true
@@ -173,8 +170,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        -60,
-        720
+        -360,
+        1060
       ],
       "id": "2fc0b00f-b8dc-4449-8c98-cd51b8f81903",
       "name": "Window Buffer Memory"
@@ -189,8 +186,8 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
       "position": [
-        -720,
-        80
+        -900,
+        460
       ],
       "id": "7d2fff47-575e-49f1-985f-408308d1dbea",
       "name": "Chat Trigger",
@@ -216,8 +213,8 @@
       "name": "Insert Chat",
       "type": "@n8n/n8n-nodes-langchain.memoryManager",
       "position": [
-        1320,
-        80
+        668,
+        260
       ],
       "typeVersion": 1,
       "alwaysOutputData": true
@@ -233,8 +230,8 @@
       "name": "Sticky Note1",
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1280,
-        20
+        635.5,
+        189
       ],
       "typeVersion": 1
     },
@@ -253,6 +250,20 @@
         -180
       ],
       "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1140,
+        700
+      ],
+      "id": "07e3a588-4ba1-4da3-a514-b221a20cc5d9",
+      "name": "Respond GET"
     }
   ],
   "pinData": {
@@ -288,6 +299,13 @@
         [
           {
             "node": "Process Agent Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond GET",
             "type": "main",
             "index": 0
           }
@@ -409,13 +427,19 @@
     "timezone": "Europe/Berlin",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "c1f9794f-7422-4f60-8f4d-11589f409b38",
+  "versionId": "d5c0a1b7-d625-4b11-a065-e633b54b530c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "6ed7c8c790e9be279bae1f055fa2b85bec988e25017a26c1b6cc75cae7133994"
   },
   "id": "Pf71TMDJsgqa4O72",
   "tags": [
+    {
+      "createdAt": "2025-03-25T14:03:31.901Z",
+      "updatedAt": "2025-03-25T14:03:31.901Z",
+      "id": "DaGph44Jstnxrmk5",
+      "name": "openai"
+    },
     {
       "createdAt": "2025-03-23T09:50:13.877Z",
       "updatedAt": "2025-03-23T09:50:13.877Z",

@@ -1,5 +1,4 @@
 // src/services/connectionValidator.ts
-
 import { ApiSettings } from '@/types';
 
 type ConnectionResult = {
@@ -17,7 +16,7 @@ export const connectionValidator = {
   async validateN8nBase(): Promise<ConnectionResult> {
     try {
       // Use our own Next.js API route as a proxy to avoid CORS issues
-      const response = await fetch('/api/n8n/health', {
+      const response = await fetch('/api/n8n/health/default', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -34,9 +33,17 @@ export const connectionValidator = {
       }
       
       const result = await response.json();
+      
+      if (!result.n8nAvailable) {
+        return {
+          success: false,
+          message: 'Cannot connect to n8n webhook. Please ensure n8n is running and accessible.'
+        };
+      }
+      
       return { 
         success: true, 
-        message: result.message || 'Connected to n8n workflow engine' 
+        message: 'Connected to n8n webhook successfully' 
       };
     } catch (error) {
       console.error('n8n validation error:', error);
@@ -156,75 +163,61 @@ export const connectionValidator = {
    * Validate n8n workflow with specific model type
    */
   async validateN8nWorkflow(workflowType: string): Promise<ConnectionResult> {
-    // First check if n8n itself is running
-    const n8nResult = await this.validateN8nBase();
-    
-    if (!n8nResult.success) {
-      return n8nResult;
-    }
-    
-    // For demo mode, no validation needed
-    if (workflowType === 'demo') {
-      return { success: true, message: 'Demo mode active' };
-    }
-    
-    // If default n8n, no specific validation needed
-    if (workflowType === 'default') {
-      return { success: true, message: 'Connected to n8n workflow engine' };
-    }
-    
-    // Check if there's a specific validation API for this workflow type
     try {
-      const response = await fetch(`/api/n8n/workflows/${workflowType}/validate`, {
-        method: 'GET'
+      // Check if specific n8n workflow is available and model API is valid
+      const response = await fetch(`/api/n8n/health/${workflowType}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        cache: 'no-store'
       });
       
-      if (response.ok) {
-        const result = await response.json();
+      if (!response.ok) {
         return { 
-          success: true, 
-          message: result.message || `Connected to n8n ${workflowType} workflow` 
+          success: false, 
+          message: `n8n workflow validation failed: ${response.status} ${response.statusText}` 
         };
       }
-    } catch (error) {
-      // If specific API fails, fall back to individual service validation
-      console.log(`No specific validation API for workflow ${workflowType}, using individual service validation`);
-    }
-    
-    // Then validate the model-specific API if needed
-    let modelResult: ConnectionResult;
-    
-    switch (workflowType) {
-      case 'openai':
-        modelResult = await this.validateOpenAI();
-        break;
-      case 'ollama':
-        modelResult = await this.validateOllama();
-        break;
-      case 'claude':
-        modelResult = await this.validateClaude();
-        break;
-      default:
-        // Unknown workflow type, just return n8n status
-        return { 
-          success: true, 
-          message: `Connected to n8n with unknown workflow type: ${workflowType}` 
+      
+      const result = await response.json();
+      
+      // If n8n is not available, fail fast
+      if (!result.n8nAvailable) {
+        return {
+          success: false,
+          message: 'Cannot connect to n8n webhook. Please ensure n8n is running and accessible.'
         };
-    }
-    
-    // If n8n is running but the model API has issues, show a warning but still allow connection
-    if (!modelResult.success) {
+      }
+      
+      // For demo and default, we only need n8n to be available
+      if (workflowType === 'demo' || workflowType === 'default') {
+        return {
+          success: true,
+          message: `Connected to n8n ${workflowType} workflow`
+        };
+      }
+      
+      // For other workflow types, check if the corresponding model API is available
+      if (!result.modelAvailable) {
+        return {
+          success: true, // Still consider connected since n8n is available
+          message: `n8n connected, but ${workflowType} warning: ${result.message || 'Model API is not available'}`
+        };
+      }
+      
+      // All good - both n8n and model API are available
       return {
-        success: true, // Still consider n8n connected for workflow operation
-        message: `n8n connected, but ${workflowType} warning: ${modelResult.message}`
+        success: true,
+        message: `Connected to n8n ${workflowType} workflow with valid API key`
+      };
+    } catch (error) {
+      console.error(`Error validating n8n ${workflowType} workflow:`, error);
+      return { 
+        success: false, 
+        message: `Error validating n8n ${workflowType} workflow: ${error instanceof Error ? error.message : 'Unknown error'}` 
       };
     }
-    
-    // All good
-    return { 
-      success: true, 
-      message: `Connected to n8n ${workflowType} workflow` 
-    };
   },
   
   /**

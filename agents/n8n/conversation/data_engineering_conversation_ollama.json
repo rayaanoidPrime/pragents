@@ -1,5 +1,5 @@
 {
-  "name": "Ollama Data Engineering Agent",
+  "name": "data-engineering-conversation-ollama",
   "nodes": [
     {
       "parameters": {
@@ -212,8 +212,12 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "ollama-de-agent",
+        "multipleMethods": true,
+        "httpMethod": [
+          "POST",
+          "GET"
+        ],
+        "path": "data-engineering-agent-ollama",
         "responseMode": "responseNode",
         "options": {
           "responseHeaders": {
@@ -285,6 +289,19 @@
       ],
       "id": "d518045d-3962-4254-9358-0b59b8c66747",
       "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -300,
+        820
+      ],
+      "id": "1c53a407-aeed-4769-b877-868fb9a92438",
+      "name": "Respond to Webhook1"
     }
   ],
   "pinData": {
@@ -415,6 +432,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -456,7 +480,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "b477fcc7-0925-4d20-9919-9ce34fe90378",
+  "versionId": "8e1ed1bb-2259-4694-93e7-5d79c672229c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "6ed7c8c790e9be279bae1f055fa2b85bec988e25017a26c1b6cc75cae7133994"

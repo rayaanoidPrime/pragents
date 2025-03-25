@@ -37,6 +37,7 @@ interface ConnectionOption {
   icon: React.ReactNode;
   description: string;
   workflowType: string;
+  envCheck?: () => boolean; // Function to check if required env vars are present
 }
 
 interface ConnectionSelectorProps {
@@ -62,6 +63,11 @@ export function ConnectionSelector({
   const resetConversation = useStore(state => state.resetConversation);
   const currentStrategy = useSelectedStrategy();
   
+  // Environment variable existence checks
+  const hasOpenAIKey = () => !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  const hasOllamaUrl = () => !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
+  const hasClaudeKey = () => !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+  
   // Define connection options
   const backendOptions: ConnectionOption[] = [
     { 
@@ -83,23 +89,35 @@ export function ConnectionSelector({
       name: 'n8n OpenAI', 
       icon: <MessageSquare className="h-4 w-4" />,
       description: 'Connect to OpenAI via n8n workflow',
-      workflowType: 'openai'
+      workflowType: 'openai',
+      envCheck: hasOpenAIKey
     },
     { 
       id: 'n8n-ollama', 
       name: 'n8n Ollama', 
       icon: <BrainCircuit className="h-4 w-4" />,
       description: 'Connect to Ollama via n8n workflow',
-      workflowType: 'ollama'
+      workflowType: 'ollama',
+      envCheck: hasOllamaUrl
     },
     { 
       id: 'n8n-claude', 
       name: 'n8n Claude', 
       icon: <SquareCode className="h-4 w-4" />,
       description: 'Connect to Claude via n8n workflow',
-      workflowType: 'claude'
+      workflowType: 'claude',
+      envCheck: hasClaudeKey
     }
   ];
+  
+  // Filter out options that are missing required env vars
+  const availableBackendOptions = backendOptions.filter(option => {
+    // Always show demo and default options
+    if (option.id === 'demo' || option.id === 'n8n-default') return true;
+    
+    // Check if required env vars exist
+    return !option.envCheck || option.envCheck();
+  });
   
   // Map store values to component state
   const selectedBackendId = getSelectedBackendId();
@@ -126,13 +144,13 @@ export function ConnectionSelector({
     return 'n8n-default';
   }
 
-  // Validate connection when component mounts
+  // Validate connection when component mounts or when API settings change
   useEffect(() => {
     validateCurrentConnection();
-  }, []);
+  }, [apiSettings.backendType, apiSettings.n8nWorkflowType, apiSettings.useDemoMode]);
 
   const validateCurrentConnection = async () => {
-    const backendOption = backendOptions.find(option => option.id === selectedBackendId);
+    const backendOption = availableBackendOptions.find(option => option.id === selectedBackendId);
     if (backendOption) {
       await validateConnection(backendOption);
     }
@@ -223,7 +241,7 @@ export function ConnectionSelector({
       // Update API settings first
       updateApiSettings({ 
         useDemoMode,
-        backendType: 'n8n', // Always n8n as base for now
+        backendType: useDemoMode ? 'demo' : 'n8n', // Set backend type based on demo mode
         n8nWorkflowType: option.workflowType, // Set the workflow type
         connectionStatus: 'disconnected', // Reset connection status
         connectionError: null
@@ -267,7 +285,7 @@ export function ConnectionSelector({
   };
 
   const getSelectedOption = () => {
-    return backendOptions.find(option => option.id === selectedBackendId) || backendOptions[0];
+    return availableBackendOptions.find(option => option.id === selectedBackendId) || availableBackendOptions[0];
   };
 
   return (
@@ -294,7 +312,7 @@ export function ConnectionSelector({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[220px]">
-          {backendOptions.map((option) => (
+          {availableBackendOptions.map((option) => (
             <DropdownMenuItem 
               key={option.id}
               className={cn(

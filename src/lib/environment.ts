@@ -27,7 +27,7 @@ export const getEnv = (key: string, defaultValue: string = ''): string => {
     // N8N configuration
     n8n: {
       url: getEnv('N8N_URL', 'http://localhost:5678'),
-      webhookPath: getEnv('N8N_WEBHOOK_PATH', '/webhook/data-engineering-agents'),
+      webhookPath: getEnv('N8N_WEBHOOK_PATH', '/webhook_env/data-engineering-agents'),
     },
     
     // Application configuration
@@ -102,7 +102,8 @@ export const environmentConfig = {
     required: false,
     default: '',
     environmentVariable: true
-  }
+  },
+  
 };
 
 /**

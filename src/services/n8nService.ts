@@ -1,12 +1,25 @@
 // src/services/n8nService.ts
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '@/types';
-import { it } from 'node:test';
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
 
-// Environment variable with fallback for n8n URL
+// Environment variables with fallbacks
 const N8N_BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:5678';
-const N8N_WORKFLOW_ENDPOINT = '/webhook/data-engineering-agent';
+
+// Workflow endpoints from environment variables with fallbacks
+const DEFAULT_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW || '/webhook/data-engineering-agent';
+const OPENAI_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OPENAI_WORKFLOW || '/webhook/data-engineering-agent';
+const OLLAMA_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW || '/webhook/data-engineering-agent';
+const CLAUDE_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW || '/webhook/data-engineering-agent';
+
+// Define workflow endpoints mapping
+const WORKFLOW_ENDPOINTS: Record<string, string> = {
+  'default': DEFAULT_WORKFLOW_ENDPOINT,
+  'openai': OPENAI_WORKFLOW_ENDPOINT,
+  'ollama': OLLAMA_WORKFLOW_ENDPOINT,
+  'claude': CLAUDE_WORKFLOW_ENDPOINT,
+  'demo': DEFAULT_WORKFLOW_ENDPOINT // Fallback for demo mode
+};
 
 interface N8nRequestPayload {
   selectedAgentIds: string[];
@@ -26,6 +39,13 @@ interface N8nResponse {
  */
 export const n8nService = {
   /**
+   * Get the appropriate workflow endpoint based on the workflow type
+   */
+  getWorkflowEndpoint(workflowType: string): string {
+    return WORKFLOW_ENDPOINTS[workflowType] || WORKFLOW_ENDPOINTS.default;
+  },
+
+  /**
    * Submit a query to the n8n workflow or generate demo responses if useDemoMode is true
    */
   async submitQuery(
@@ -35,7 +55,8 @@ export const n8nService = {
     useDemoMode = false
   ): Promise<N8nResponse> {
     const { apiSettings } = useStore.getState();
-    const { n8nWorkflowType } = apiSettings;
+    const { n8nWorkflowType = 'default' } = apiSettings;
+    
     // If in demo mode, return demo responses
     if (useDemoMode) {
       return this.generateDemoResponses(selectedAgentIds, strategyId, query);
@@ -49,9 +70,14 @@ export const n8nService = {
         query
       };
 
-      console.log('Submitting query to n8n:', payload);
+      // Get the appropriate workflow endpoint based on the current workflow type
+      const workflowEndpoint = this.getWorkflowEndpoint(n8nWorkflowType);
+      const apiUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+      
+      console.log(`Submitting query to n8n (${n8nWorkflowType}):`, payload);
+      console.log(`Using endpoint: ${apiUrl}`);
 
-      const response = await fetch(`${N8N_BASE_URL}${N8N_WORKFLOW_ENDPOINT}`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -75,9 +101,8 @@ export const n8nService = {
         
         // Process agent responses
         rawResult.forEach((item, index) => {
-          console.log('Full Value',item)
+          console.log('Processing n8n response item:', item);
           if (item.agentId && item.agentName && item.content) {
-            console.log('item agent to n8n:', item.agentName);
             // It's an agent response
             messages.push({
               id: uuidv4(),
@@ -88,7 +113,6 @@ export const n8nService = {
               createdAt: new Date(now.getTime() + index * 100) // Stagger timestamps slightly
             });
           } else if (item.summary) {
-            console.log('INSIDE SUMMARY')
             // It's a summary
             messages.push({
               id: uuidv4(),
@@ -103,18 +127,6 @@ export const n8nService = {
             });
           }
         });
-
-                // const welcomeMessage = {
-                //   id: uuidv4(),
-                //   content: generateWelcomeMessage(selectedAgents),
-                //   role: "assistant",
-                //   agentId: "coordinator",
-                //   agentName: "Coordinator",
-                //   agentAvatar: "🧠",
-                //   agentColor: "#9333EA", // Purple color for coordinator
-                //   createdAt: new Date(),
-                //   type: "welcome"
-                // };
         
         return {
           success: true,
@@ -167,21 +179,24 @@ export const n8nService = {
   },
   
   /**
-   * Checks if the n8n service is available
+   * Checks if the n8n service is available for the current workflow type
    * @returns A promise that resolves to true if the service is available
    */
-  async checkAvailability(): Promise<boolean> {
+  async checkAvailability(workflowType = 'default'): Promise<boolean> {
     try {
       // Use Next.js API route as a proxy to avoid CORS issues
-      const response = await fetch('/api/n8n', {
+      const response = await fetch(`/api/n8n/health/${workflowType}`, {
         method: 'GET'
       });
       
-      // Using no-cors returns an opaque response (we can't read status)
-      // So just assume it's available if we get here without an error
-      return true;
+      if (!response.ok) {
+        return false;
+      }
+      
+      const result = await response.json();
+      return result.available === true;
     } catch (error) {
-      console.error('n8n service is not available:', error);
+      console.error(`n8n service (${workflowType}) is not available:`, error);
       return false;
     }
   },
