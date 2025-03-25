@@ -1,4 +1,3 @@
-// src/services/n8nService.ts
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '@/types';
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
@@ -93,66 +92,8 @@ export const n8nService = {
       // Parse the raw response
       const rawResult = await response.json();
       
-      // Transform n8n response format to match expected format
-      // The n8n response is an array of agent responses
-      if (Array.isArray(rawResult)) {
-        const now = new Date();
-        const messages: Message[] = [];
-        
-        // Process agent responses
-        rawResult.forEach((item, index) => {
-          console.log('Processing n8n response item:', item);
-          if (item.agentId && item.agentName && item.content) {
-            // It's an agent response
-            messages.push({
-              id: uuidv4(),
-              agentId: item.agentId,
-              agentName: item.agentName,
-              content: item.content,
-              role: 'assistant',
-              createdAt: new Date(now.getTime() + index * 100) // Stagger timestamps slightly
-            });
-          } else if (item.summary) {
-            // It's a summary
-            messages.push({
-              id: uuidv4(),
-              agentId: "coordinator",
-              agentName: "Coordinator",
-              agentAvatar: "🧠",
-              agentColor: "#9333EA",
-              content: item.summary,
-              role: 'system',
-              type: 'summary',
-              createdAt: new Date(now.getTime() + rawResult.length * 100)
-            });
-          }
-        });
-        
-        return {
-          success: true,
-          messages,
-          status: 'completed'
-        };
-      }
-      
-      // If the response is already in the expected format
-      const result = rawResult as N8nResponse;
-      
-      // Process timestamps to convert string dates to Date objects
-      if (result.messages && Array.isArray(result.messages)) {
-        result.messages = result.messages.map(message => {
-          // Create a new message object with consistent fields
-          return {
-            ...message,
-            id: message.id || uuidv4(),
-            // Use timestamp field if available and convert to createdAt
-            createdAt: message.timestamp ? new Date(message.timestamp) : 
-                      (message.createdAt ? new Date(message.createdAt) : new Date())
-          };
-        });
-      }
-      
-      return result;
+      // Process the response data
+      return this.processN8nResponse(rawResult);
     } catch (error) {
       console.error('Error submitting query to n8n:', error);
       
@@ -176,6 +117,188 @@ export const n8nService = {
         status: 'completed'
       };
     }
+  },
+  
+  /**
+   * Processes the n8n response and transforms it into the expected format
+   * Handles multiple response formats
+   * @private
+   */
+  processN8nResponse(rawResult: any): N8nResponse {
+    console.log('Processing n8n response:', rawResult);
+    const now = new Date();
+    const messages: Message[] = [];
+    
+    // Handle the new format in array with output object:
+    // [{ output: { summary: string, agents: Array<{ agentId, agentName, content }> } }]
+    if (Array.isArray(rawResult) && rawResult.length === 1 && rawResult[0]?.output) {
+      console.log('Processing new format with [{ output: { summary, agents } }]');
+      const outputObj = rawResult[0].output;
+      
+      // Process agent responses
+      if (Array.isArray(outputObj.agents)) {
+        outputObj.agents.forEach((agent: any, index: number) => {
+          if (agent.agentId && agent.agentName && agent.content) {
+            // Extract the base agent ID without any suffix (e.g., "data-analyst-1" -> "data-analyst")
+            // This ensures we match to the correct agent avatar/icon
+            const baseAgentId = agent.agentId.split('-').slice(0, -1).join('-');
+            
+            messages.push({
+              id: uuidv4(),
+              // Use the base agent ID to ensure proper icon/avatar mapping
+              agentId: baseAgentId,
+              // Keep the original complete ID as a property for reference
+              originalAgentId: agent.agentId,
+              agentName: agent.agentName,
+              content: agent.content,
+              role: 'assistant',
+              createdAt: new Date(now.getTime() + index * 100) // Stagger timestamps slightly
+            });
+          }
+        });
+      }
+      
+      // Add summary if available
+      if (outputObj.summary) {
+        messages.push({
+          id: uuidv4(),
+          agentId: "coordinator",
+          agentName: "Coordinator",
+          agentAvatar: "🧠",
+          agentColor: "#9333EA",
+          content: outputObj.summary,
+          role: 'system',
+          type: 'summary',
+          createdAt: new Date(now.getTime() + (outputObj.agents?.length || 0) * 100)
+        });
+      }
+      
+      return {
+        success: true,
+        messages,
+        status: 'completed'
+      };
+    }
+    
+    // Handle direct { summary: string, agents: Array<{ agentId, agentName, content }> } format
+    else if (rawResult && !Array.isArray(rawResult) && rawResult.agents) {
+      console.log('Processing direct format with { summary, agents }');
+      
+      // Process agent responses
+      if (Array.isArray(rawResult.agents)) {
+        rawResult.agents.forEach((agent: any, index: number) => {
+          if (agent.agentId && agent.agentName && agent.content) {
+            messages.push({
+              id: uuidv4(),
+              agentId: agent.agentId,
+              agentName: agent.agentName,
+              content: agent.content,
+              role: 'assistant',
+              createdAt: new Date(now.getTime() + index * 100) // Stagger timestamps slightly
+            });
+          }
+        });
+      }
+      
+      // Add summary if available
+      if (rawResult.summary) {
+        messages.push({
+          id: uuidv4(),
+          agentId: "coordinator",
+          agentName: "Coordinator",
+          agentAvatar: "🧠",
+          agentColor: "#9333EA",
+          content: rawResult.summary,
+          role: 'system',
+          type: 'summary',
+          createdAt: new Date(now.getTime() + (rawResult.agents?.length || 0) * 100)
+        });
+      }
+      
+      return {
+        success: true,
+        messages,
+        status: 'completed'
+      };
+    }
+    
+    // Handle the original array format
+    else if (Array.isArray(rawResult)) {
+      console.log('Processing original array format response');
+      
+      // Process agent responses
+      rawResult.forEach((item, index) => {
+        console.log('Processing n8n response item:', item);
+        if (item.agentId && item.agentName && item.content) {
+          // It's an agent response
+          messages.push({
+            id: uuidv4(),
+            agentId: item.agentId,
+            agentName: item.agentName,
+            content: item.content,
+            role: 'assistant',
+            createdAt: new Date(now.getTime() + index * 100) // Stagger timestamps slightly
+          });
+        } else if (item.summary) {
+          // It's a summary
+          messages.push({
+            id: uuidv4(),
+            agentId: "coordinator",
+            agentName: "Coordinator",
+            agentAvatar: "🧠",
+            agentColor: "#9333EA",
+            content: item.summary,
+            role: 'system',
+            type: 'summary',
+            createdAt: new Date(now.getTime() + rawResult.length * 100)
+          });
+        }
+      });
+      
+      return {
+        success: true,
+        messages,
+        status: 'completed'
+      };
+    }
+    
+    // If the response is already in the expected format
+    else if (rawResult && rawResult.messages) {
+      console.log('Processing response in expected format with messages array');
+      const result = rawResult as N8nResponse;
+      
+      // Process timestamps to convert string dates to Date objects
+      if (result.messages && Array.isArray(result.messages)) {
+        result.messages = result.messages.map(message => {
+          // Create a new message object with consistent fields
+          return {
+            ...message,
+            id: message.id || uuidv4(),
+            // Use timestamp field if available and convert to createdAt
+            createdAt: message.timestamp ? new Date(message.timestamp) : 
+                      (message.createdAt ? new Date(message.createdAt) : new Date())
+          };
+        });
+      }
+      
+      return result;
+    }
+    
+    // Handle unrecognized format
+    console.warn('Unrecognized response format from n8n:', rawResult);
+    return {
+      success: false,
+      messages: [
+        {
+          id: uuidv4(),
+          content: `Received unexpected response format from agent service`,
+          role: 'system',
+          type: 'error',
+          createdAt: new Date()
+        }
+      ],
+      status: 'completed'
+    };
   },
   
   /**
