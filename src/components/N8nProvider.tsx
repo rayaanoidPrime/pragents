@@ -6,6 +6,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { CloudOff, RefreshCw } from 'lucide-react';
 import { n8nService } from '@/services/n8nService';
+import { StoreState } from "@/types";
 
 interface N8nProviderProps {
   children: ReactNode;
@@ -16,8 +17,8 @@ export function N8nProvider({
   children, 
   showWarning = true 
 }: N8nProviderProps) {
-  const apiSettings = useStore((state) => state.apiSettings);
-  const updateApiSettings = useStore((state) => state.updateApiSettings);
+  const apiSettings = useStore((state:StoreState) => state.apiSettings);
+  const updateApiSettings = useStore((state:StoreState) => state.updateApiSettings);
   
   const checkN8nConnection = async () => {
     try {

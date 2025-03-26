@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
+import { Agent, Message, Strategy, StoreState } from '@/types';
 
 interface NextQuestion {
   id: string;
@@ -87,7 +88,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       }
       setCoordinatorProcessing(false);
     }
-  }, [isProcessing, currentTurn]);
+  }, [isProcessing, currentTurn, conversationStatus, lastSummaryTurn]);
 
   // Add coordinator welcome message when conversation starts
   useEffect(() => {
@@ -100,7 +101,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       );
       
       if (!hasCoordinatorWelcome) {
-        const welcomeMessage = {
+        const welcomeMessage: Message = {
           id: uuidv4(),
           content: generateWelcomeMessage(selectedAgents),
           role: "assistant",
@@ -129,13 +130,14 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   }, [conversationStatus, selectedAgents, messages, hasShownWelcome, addMessage]);
 
 
-  // Filter messages to remove raw summary messages and preserve coordinator-formatted ones
-  const filterMessages = (messages: any[]) => {
+  // Filter messages to remove raw summary messages
+  const filterMessages = (messages: Message[]): Message[] => {
+    // Only filter out actual 'summary' role messages, not summary type messages
     return messages.filter(msg => msg.role !== 'summary');
   };
   
   // Handle FAQ and follow-up question selection without auto-submitting
-  const handleQuestionSelect = (question: string) => {
+  const handleQuestionSelect = (question: string): void => {
     setInputValue(question);
     
     // Focus the textarea after setting the value
@@ -144,7 +146,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (): Promise<void> => {
     if (!inputValue.trim() || isProcessing) return;
     
     // Submit query to n8n via our store action
@@ -164,7 +166,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -183,7 +185,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   }
 
   // Next Questions Panel
-  const NextQuestionsPanel = () => {
+  const NextQuestionsPanel = (): JSX.Element | null => {
     if (nextQuestions.length === 0) return null;
     return (
       <motion.div 
@@ -193,7 +195,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
         className="mt-8 mb-6"
       >
         <div className="flex flex-wrap gap-3 justify-center">
-          {nextQuestions.map(q => (
+          {nextQuestions.map((q) => (
             <motion.button
               key={q.id}
               initial={{ scale: 0.95 }}
@@ -216,7 +218,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   };
 
   // Welcome Message for empty state
-  const WelcomeMessage = () => (
+  const WelcomeMessage = (): JSX.Element => (
     <div className="h-full flex flex-col items-center justify-center text-center p-8">
       <div className="text-6xl mb-6">💬</div>
       <h3 className="text-2xl font-medium mb-3 font-display">
@@ -305,39 +307,6 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
             {/* Add the ConnectionStatus component with improved styling */}
             <div className="flex items-center gap-2">
               <ConnectionSelector />
-              
-              {/* {conversationStatus === "active" && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20 px-2 py-0.5">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span className="text-xs">Turn {currentTurn}/{currentStrategy?.maxTurns || '?'}</span>
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Current turn in the conversation</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => resetConversation()}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        <span className="sr-only">End Conversation</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>End current conversation</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )} */}
             </div>
           </div>
         </div>
@@ -349,14 +318,14 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
         ) : (
           <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
             <AnimatePresence>
-              {filterMessages(processedMessages).map((msg) => (
+              {filterMessages(processedMessages).map(msg => (
                 <ChatMessage 
                   key={msg.id} 
                   message={{
                     ...msg,
                     timestamp: new Date(msg.createdAt),
                     isPending: msg.type === "thinking",
-                    hasCode: msg.content?.includes('```'),
+                    hasCode: msg.content ? msg.content.includes('```') : false,
                     isCoordinator: msg.agentId === "coordinator"
                   }} 
                   showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
@@ -507,7 +476,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
 }
 
 // Helper function to generate welcome message
-function generateWelcomeMessage(agents: any[]) {
+function generateWelcomeMessage(agents: Agent[]): string {
   return `
 ### Welcome to this multi-agent discussion
 
@@ -522,7 +491,7 @@ Let's begin our exploration of this topic.
 }
 
 // Helper function to generate summary message based on messages
-function generateSummaryMessage(messages: any[], currentTurn: number) {
+function generateSummaryMessage(messages: Message[], currentTurn: number): string {
   if (messages.length === 0) {
     return `
 ### Summary
@@ -532,19 +501,20 @@ The agents are still formulating their responses. I'll provide a summary once th
   }
   
   // Group messages by agent
-  const agentMessages: Record<string, any[]> = {};
+  const agentMessages: Record<string, Message[]> = {};
   
   messages.forEach(msg => {
-    if (!agentMessages[msg.agentId]) {
-      agentMessages[msg.agentId] = [];
+    const agentId = msg.agentId || '';
+    if (!agentMessages[agentId]) {
+      agentMessages[agentId] = [];
     }
-    agentMessages[msg.agentId].push(msg);
+    agentMessages[agentId].push(msg);
   });
   
   // Create summary points for each agent
   const summaryPoints = Object.entries(agentMessages).map(([agentId, msgs]) => {
     const agentName = msgs[0].agentName || 'Agent';
-    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content)}`;
+    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content || '')}`;
   }).join('\n');
   
   return `
@@ -566,7 +536,7 @@ function getKeyPointFromMessage(content: string): string {
   
   // Get the first sentence that's substantial
   const sentences = plainText.split(/\.\s+/);
-  const firstGoodSentence = sentences.find(s => s.length > 20) || sentences[0];
+  const firstGoodSentence = sentences.find(s => s.length > 20) || sentences[0] || '';
   
   if (firstGoodSentence.length > 100) {
     return firstGoodSentence.substring(0, 97) + '...';

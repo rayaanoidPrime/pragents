@@ -12,19 +12,21 @@ import { cn } from "@/lib/utils";
 import { Search, Users, Layers, Plus, BarChart2, Code, Palette, Stethoscope } from "lucide-react";
 import { AgentSelector } from "../agents/AgentSelector";
 import { StrategySelector } from "../strategies/StrategySelector";
+import { StoreState, Strategy } from "@/types";
 
 export function AgentStrategyPanel() {
   const [activeTab, setActiveTab] = useState<string>("agents");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   
-  const selectedAgentIds = useStore((state) => state.selectedAgentIds);
-  const selectedStrategy = useStore((state) => state.selectedStrategy);
-  const strategies = useStore((state) => state.strategies);
+  // Add proper type annotations to useStore selectors
+  const selectedAgentIds = useStore((state: StoreState) => state.selectedAgentIds);
+  const selectedStrategy = useStore((state: StoreState) => state.selectedStrategy);
+  const strategies = useStore((state: StoreState) => state.strategies);
   const MAX_AGENTS = 4;
   
   // Get current strategy name
-  const currentStrategy = strategies.find(s => s.id === selectedStrategy);
+  const currentStrategy = strategies.find((s: Strategy) => s.id === selectedStrategy);
   
   return (
     <div className="flex flex-col h-full">
@@ -71,7 +73,7 @@ export function AgentStrategyPanel() {
                 <ToggleGroup
                   type="single"
                   value={categoryFilter}
-                  onValueChange={value => value && setCategoryFilter(value)}
+                  onValueChange={(value: string) => value && setCategoryFilter(value)}
                   className="justify-start flex-wrap gap-1"
                 >
                   <ToggleGroupItem
@@ -167,8 +169,8 @@ export function AgentStrategyPanel() {
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center"
                       style={{
-                        backgroundColor: `${currentStrategy.color}20`,
-                        color: currentStrategy.color,
+                        backgroundColor: `${currentStrategy.color || '#6366F1'}20`,
+                        color: currentStrategy.color || '#6366F1',
                       }}
                     >
                       <Layers className="h-4 w-4" />
@@ -184,7 +186,7 @@ export function AgentStrategyPanel() {
               )}
               
               {/* Use the StrategySelector component */}
-              <StrategySelector searchQuery={searchQuery} />
+              <StrategySelector/>
             </div>
           </ScrollArea>
         )}

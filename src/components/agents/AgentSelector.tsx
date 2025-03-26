@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/store";
+import { Agent, Strategy, StoreState } from "@/types"; // Import types from central types file
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ModernTooltip } from "@/components/modern-tooltip";
@@ -13,28 +14,25 @@ interface AgentSelectorProps {
 }
 
 export function AgentSelector({ mode, searchQuery = "", categoryFilter = "all" }: AgentSelectorProps) {
-  const agents = useStore((state) => state.agents);
-  const selectedAgentIds = useStore((state) => state.selectedAgentIds);
-  const selectAgent = useStore((state) => state.selectAgent);
-  
-  // Try using the dispatch function from your store for deselection
-  // This is a common pattern in zustand stores
-  const dispatch = useStore((state) => state.dispatch);
+  const agents = useStore((state: StoreState) => state.agents);
+  const selectedAgentIds = useStore((state: StoreState) => state.selectedAgentIds);
+  const selectAgent = useStore((state: StoreState) => state.selectAgent);
+  const unselectAgent = useStore((state: StoreState) => state.unselectAgent);
   
   // Get current strategy for max agents
-  const strategies = useStore((state) => state.strategies);
-  const selectedStrategy = useStore((state) => state.selectedStrategy);
-  const currentStrategy = strategies.find(s => s.id === selectedStrategy);
+  const strategies = useStore((state: StoreState) => state.strategies);
+  const selectedStrategy = useStore((state: StoreState) => state.selectedStrategy);
+  const currentStrategy = strategies.find((s: Strategy) => s.id === selectedStrategy);
   const MAX_AGENTS = currentStrategy?.maxAgents || 4;
   
   // Filtered list based on mode and filters
   const filteredAgents = mode === "selected" 
-    ? agents.filter(agent => selectedAgentIds.includes(agent.id))
-    : agents.filter(agent => {
+    ? agents.filter((agent: Agent) => selectedAgentIds.includes(agent.id))
+    : agents.filter((agent: Agent) => {
         // Apply category filter
         if (categoryFilter !== "all" && 
             agent.category !== categoryFilter && 
-            agent.description?.toLowerCase().indexOf(categoryFilter) < 0 && 
+            (agent.description ? agent.description.toLowerCase().indexOf(categoryFilter) < 0 : true) && 
             agent.id.indexOf(categoryFilter) < 0) {
           return false;
         }
@@ -42,7 +40,7 @@ export function AgentSelector({ mode, searchQuery = "", categoryFilter = "all" }
         // Apply search filter
         if (searchQuery.trim() && 
             !agent.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !agent.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
+            !(agent.description ? agent.description.toLowerCase().includes(searchQuery.toLowerCase()) : false)) {
           return false;
         }
         
@@ -50,12 +48,9 @@ export function AgentSelector({ mode, searchQuery = "", categoryFilter = "all" }
       });
   
   // Toggle agent selection
-  const toggleAgentSelection = (agentId: string) => {
+  const toggleAgentSelection = (agentId: string): void => {
     if (selectedAgentIds.includes(agentId)) {
-      // Directly update the store's state to remove the agent.
-      useStore.setState((state) => ({
-        selectedAgentIds: state.selectedAgentIds.filter(id => id !== agentId)
-      }));
+      unselectAgent(agentId);
     } else {
       if (selectedAgentIds.length >= MAX_AGENTS) return;
       selectAgent(agentId);
@@ -72,8 +67,8 @@ export function AgentSelector({ mode, searchQuery = "", categoryFilter = "all" }
     )}>
       {mode === "selected" ? (
         // Selected mode shows pill-style tags
-        selectedAgentIds.map(agentId => {
-          const agent = agents.find(a => a.id === agentId);
+        selectedAgentIds.map((agentId: string) => {
+          const agent = agents.find((a: Agent) => a.id === agentId);
           if (!agent) return null;
           return (
             <motion.div
@@ -105,7 +100,7 @@ export function AgentSelector({ mode, searchQuery = "", categoryFilter = "all" }
         })
       ) : (
         // All mode shows cards
-        filteredAgents.map(agent => {
+        filteredAgents.map((agent: Agent) => {
           const isSelected = selectedAgentIds.includes(agent.id);
           const isSelectable = !isSelected && selectedAgentIds.length < MAX_AGENTS;
 

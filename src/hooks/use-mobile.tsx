@@ -17,3 +17,19 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+export function useMobile() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
+  const isMobile = useIsMobile()
+
+  const toggleMobileSidebar = React.useCallback(() => {
+    setMobileSidebarOpen(prev => !prev)
+  }, [])
+
+  return {
+    isMobile,
+    mobileSidebarOpen,
+    toggleMobileSidebar,
+    setMobileSidebarOpen
+  }
+}

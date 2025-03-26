@@ -7,6 +7,7 @@ import { RightSidebar } from "./RightSidebar";
 import { ChatControlBar } from "./ChatControlBar";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { StoreState } from "@/types";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,8 +16,8 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   // Zustand store controls for sidebar visibility
   // You can keep right sidebar controls as-is
-  const isRightSidebarOpen = useStore((state) => state.isRightSidebarOpen);
-  const toggleRightSidebar = useStore((state) => state.toggleRightSidebar);
+  const isRightSidebarOpen = useStore((state: StoreState) => state.isRightSidebarOpen);
+  const toggleRightSidebar = useStore((state: StoreState) => state.toggleRightSidebar);
 
   return (
     <div className="flex h-screen overflow-hidden">

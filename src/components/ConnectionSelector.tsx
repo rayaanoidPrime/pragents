@@ -7,15 +7,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { 
   Activity, 
   RotateCcw, 
-  Wifi, 
-  WifiOff,
   Bot,
   BrainCircuit, 
-  Cloud,
   MessageSquare,
   SquareCode,
-  Loader2,
-  AlertTriangle
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,6 +24,7 @@ import { useStore, useSelectedStrategy } from '@/store';
 import { connectionValidator } from '@/services/connectionValidator';
 import { useToast } from '@/hooks/use-toast';
 import { ConnectionStatusTooltip } from './ConnectionStatusTooltip';
+import { StoreState, ApiSettings } from '@/types';
 
 type BackendType = 'demo' | 'n8n-openai' | 'n8n-ollama' | 'n8n-claude' | 'n8n-default';
 
@@ -57,16 +54,16 @@ export function ConnectionSelector({
   const { toast } = useToast();
   
   // Get store values and actions
-  const apiSettings = useStore(state => state.apiSettings);
-  const updateApiSettings = useStore(state => state.updateApiSettings);
-  const currentTurn = useStore(state => state.currentTurn);
-  const resetConversation = useStore(state => state.resetConversation);
+  const apiSettings = useStore((state: StoreState) => state.apiSettings);
+  const updateApiSettings = useStore((state: StoreState) => state.updateApiSettings);
+  const currentTurn = useStore((state: StoreState) => state.currentTurn);
+  const resetConversation = useStore((state: StoreState) => state.resetConversation);
   const currentStrategy = useSelectedStrategy();
   
   // Environment variable existence checks
-  const hasOpenAIKey = () => !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  const hasOllamaUrl = () => !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
-  const hasClaudeKey = () => !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+  const hasOpenAIKey = (): boolean => !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  const hasOllamaUrl = (): boolean => !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
+  const hasClaudeKey = (): boolean => !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
   
   // Define connection options
   const backendOptions: ConnectionOption[] = [
@@ -149,7 +146,7 @@ export function ConnectionSelector({
     validateCurrentConnection();
   }, [apiSettings.backendType, apiSettings.n8nWorkflowType, apiSettings.useDemoMode]);
 
-  const validateCurrentConnection = async () => {
+  const validateCurrentConnection = async (): Promise<void> => {
     const backendOption = availableBackendOptions.find(option => option.id === selectedBackendId);
     if (backendOption) {
       await validateConnection(backendOption);
@@ -157,7 +154,7 @@ export function ConnectionSelector({
   };
 
   // Determine the connection status for the tooltip
-  const getConnectionStatus = () => {
+  const getConnectionStatus = (): 'connected' | 'disconnected' | 'warning' | 'validating' => {
     if (isValidating) return 'validating';
     if (connectionWarning) return 'warning';
     if (connectionStatus) return 'connected';
@@ -165,7 +162,7 @@ export function ConnectionSelector({
   };
 
   // Get the appropriate message for the tooltip
-  const getStatusMessage = () => {
+  const getStatusMessage = (): string => {
     if (isValidating) return 'Validating connection...';
     if (connectionWarning) return connectionWarning;
     if (connectionError) return connectionError;
@@ -173,7 +170,7 @@ export function ConnectionSelector({
     return 'Not connected to backend';
   };
 
-  const validateConnection = async (option: ConnectionOption) => {
+  const validateConnection = async (option: ConnectionOption): Promise<void> => {
     setIsValidating(true);
     setConnectionWarning(null);
     
@@ -232,7 +229,7 @@ export function ConnectionSelector({
     }
   };
 
-  const handleBackendChange = async (option: ConnectionOption) => {
+  const handleBackendChange = async (option: ConnectionOption): Promise<void> => {
     setIsValidating(true);
     
     try {
@@ -242,7 +239,7 @@ export function ConnectionSelector({
       updateApiSettings({ 
         useDemoMode,
         backendType: useDemoMode ? 'demo' : 'n8n', // Set backend type based on demo mode
-        n8nWorkflowType: option.workflowType, // Set the workflow type
+        n8nWorkflowType: option.workflowType as any, // Set the workflow type
         connectionStatus: 'disconnected', // Reset connection status
         connectionError: null
       });
@@ -272,7 +269,7 @@ export function ConnectionSelector({
     }
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     resetConversation();
     if (onReset) {
       onReset();
@@ -284,7 +281,7 @@ export function ConnectionSelector({
     });
   };
 
-  const getSelectedOption = () => {
+  const getSelectedOption = (): ConnectionOption => {
     return availableBackendOptions.find(option => option.id === selectedBackendId) || availableBackendOptions[0];
   };
 
