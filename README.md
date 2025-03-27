@@ -10,8 +10,9 @@
 <br />
 
 <div align="center">
-  <h3>💬 Collaborative AI agents for data engineering problems</h3>
-  <p>Multiple specialized agents working together to solve complex data challenges</p>
+  <h3>💬 DataEngineering AI agents to Empwoer Data Engineers</h3>
+  <p>Multiple specialized agents unite to tackle complex data challenges. While some doubt that automating data engineering is achievable, 
+  we're building a platform that leverages GenAI to craft a smart, indispensable assistant for Data Engineers.</p>
 </div>
 
 ## ✨ Features
@@ -57,23 +58,16 @@ docker-compose up -d
 
 ## 🎯 Strategy Types
 
-- **Infrastructure** - Set up and configure data engineering infrastructure
-- **Pipeline** - Create and optimize ETL/ELT data pipelines
-- **Analysis** - Analyze and derive insights from your data
-- **Quality** - Implement data quality checks and monitoring
-- **Governance** - Establish data governance policies and practices
 
 ## 🔮 Coming Soon
 
 We're actively working on the following features:
 
-- 📊 **Interactive Visualizations** - Embedded charts and graphs for data insights
+- 🎯 **Strategy Types** - More Strategy Types backend for debate and Continous Discussion
 - 📝 **Code Execution** - Run and test code snippets directly in the chat
 - 🔄 **Workflow Builder** - Create custom agent workflows with a visual editor
 - 🌐 **Multi-source Data Connectors** - Connect to various data sources
-- 📱 **Mobile Support** - Fully responsive design for mobile devices
-- 🔒 **Enhanced Security** - Role-based access controls and data encryption
-- 🔄 **Automated Testing** - Add comprehensive test suite
+
 
 ## 🧩 Architecture
 
