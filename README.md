@@ -1,107 +1,110 @@
-# Data Engineering Agents Platform
+# 🤖 Data Engineering Agents Platform
 
-A modern web UI for Data Engineering Agents that allows multiple specialized agents to interact with each other and execute various data engineering tasks.
+<div align="center">
+  <img src="https://img.shields.io/badge/Status-Alpha-yellow" alt="Alpha Status" />
+  <img src="https://img.shields.io/badge/Next.js-14-black" alt="Next.js 14" />
+  <img src="https://img.shields.io/badge/TypeScript-✓-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/UI-Shadcn%20+%20Tailwind-purple" alt="UI" />
+</div>
 
-## Features
+<br />
 
-- Dark theme UI inspired by LobeChat
-- Support for multiple agent avatars based on data engineering specialties
-- Different strategies for data engineering tasks (Build Infra, Data Pipeline, Data Analysis, etc.)
-- Chat history saved in database
-- Multiple agents can collaborate on complex tasks
+<div align="center">
+  <h3>💬 Collaborative AI agents for data engineering problems</h3>
+  <p>Multiple specialized agents working together to solve complex data challenges</p>
+</div>
 
-## UI Design
+## ✨ Features
 
-The UI follows a clean, modern design with a focus on usability:
+- 🤖 **Multi-agent collaboration** - Engage with specialized data engineering agents
+- 🔄 **Multiple backend support** - Connect to OpenAI, Claude, or Ollama for private deployments
+- 🔗 **n8n integration** - Use n8n workflows for agent orchestration
+- 🎯 **Strategy-based approach** - Different strategies for various data engineering tasks
+- 🌙 **Modern dark UI** - Beautiful, responsive interface inspired by LobeChat
+- 🚀 **Docker ready** - Easy deployment with Docker Compose
 
-- **Left Sidebar**: Contains navigation and agents list, following the LobeChat design pattern. The sidebar can be collapsed for more space.
-- **Top Tabs**: Strategy selection uses tabs for easy navigation between different data engineering approaches.
-- **Main Content**: The chat interface where multiple agents collaborate to solve data engineering problems.
+## 🚀 Quick Start
 
-## Tech Stack
+The fastest way to get started is using Docker Compose:
 
-- Next.js with TypeScript
-- Prisma ORM for database interactions**
-- Tailwind CSS with Shadcn UI components
-- Zustand for state management
-- pnpm for package management
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js v18+ and pnpm installed
-- PostgreSQL database
-
-### Running Locally
-
-1. Clone the repository:
 ```bash
+# Clone the repository
 git clone https://github.com/yourusername/data-engineering-agents.git
 cd data-engineering-agents
+
+# Start the application
+docker-compose up -d
 ```
 
-2. Install dependencies:
-```bash
-pnpm install
-```
+### 🔧 Setup Steps
 
-3. Install Shadcn UI components:
-```bash
-npx shadcn-ui@latest add button avatar card dropdown-menu input textarea tabs tooltip scroll-area separator label switch
-```
+1. Once the containers are running, go to n8n at http://localhost:5678
+2. Upload the workflow from the `agents/n8n/conversations` directory
+3. Configure your API keys:
+   - In Docker Compose: update OpenAI/Claude key
+   - In n8n workflow: click on OpenAI/Claude model block and add your key
+   - See [n8n documentation](https://docs.n8n.io/integrations/builtin/credentials/openai/#using-api-key) for more details
 
-4. Set up environment variables:
-```bash
-cp .env.example .env
-# Update the .env file with your configuration
-```
+4. Visit http://localhost:3000 and start interacting with your agents!
 
-5. Set up the database:
-```bash
-pnpm prisma:migrate
-pnpm prisma:generate
-pnpm prisma:seed
-```
+## 🧠 Available Agents
 
-6. Start the development server:
-```bash
-pnpm dev
-```
+- **Data Architect** - Designs data infrastructure and systems
+- **Pipeline Engineer** - Builds efficient data pipelines
+- **Data Analyst** - Analyzes and interprets complex data
+- **Data Scientist** - Applies statistical models and machine learning
+- **Governance Specialist** - Ensures data quality and compliance
 
-### Using Docker
+## 🎯 Strategy Types
 
-Alternatively, you can use Docker Compose to run the entire stack:
+- **Infrastructure** - Set up and configure data engineering infrastructure
+- **Pipeline** - Create and optimize ETL/ELT data pipelines
+- **Analysis** - Analyze and derive insights from your data
+- **Quality** - Implement data quality checks and monitoring
+- **Governance** - Establish data governance policies and practices
 
-```bash
-docker-compose up -d --build
-docker-compose down
-```
+## 🔮 Coming Soon
 
+We're actively working on the following features:
 
-## Key Components
+- 📊 **Interactive Visualizations** - Embedded charts and graphs for data insights
+- 📝 **Code Execution** - Run and test code snippets directly in the chat
+- 🔄 **Workflow Builder** - Create custom agent workflows with a visual editor
+- 🌐 **Multi-source Data Connectors** - Connect to various data sources
+- 📱 **Mobile Support** - Fully responsive design for mobile devices
+- 🔒 **Enhanced Security** - Role-based access controls and data encryption
+- 🔄 **Automated Testing** - Add comprehensive test suite
 
-### Sidebar with Agents
+## 🧩 Architecture
 
-The left sidebar contains navigation and a collapsible list of agents. When viewing the Conversation page, it shows the available agents that can be selected for collaboration.
+The application is built with a modern stack:
 
-### Strategy Selection Tabs
+- **Frontend**: Next.js 14 with App Router, TypeScript, Tailwind CSS, Shadcn UI
+- **State Management**: Zustand for global state
+- **Orchestration**: n8n for workflow management
+- **AI Integration**: OpenAI, Claude, and Ollama support
 
-The strategy tabs at the top allow users to quickly switch between different data engineering approaches:
-- Build Infrastructure
-- Data Pipeline
-- Data Analysis
-- Data Quality
-- Data Governance
+## 🤝 Contributing
 
-### Agent Collaboration
+Contributions are always welcome! Here's how you can help:
 
-Multiple agents can collaborate on a task, each bringing their own expertise. The UI makes it clear which agent is responding at any given time.
+1. Fork the repository
+2. Create a new branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and commit them: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a pull request
 
-## Contributing
+### 🐛 Bug Reports
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+If you encounter any issues, please help us improve by [creating a bug report](https://github.com/yourusername/data-engineering-agents/issues/new?template=bug_report.md).
 
-## License
+Include as much information as possible:
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Screenshots if applicable
+- Environment details (browser, OS, etc.)
+
+## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
