@@ -11,8 +11,7 @@
 
 <div align="center">
   <h3>💬 DataEngineering AI agents to Empwoer Data Engineers</h3>
-  <p>Multiple specialized agents unite to tackle complex data challenges. While some doubt that automating data engineering is achievable, 
-  we're building a platform that leverages GenAI to craft a smart, indispensable assistant for Data Engineers.</p>
+  <p>Building a Practical Assistant that empowers Data Engineers to deliver results with speed and efficiency.</p>
 </div>
 
 ## ✨ Features
