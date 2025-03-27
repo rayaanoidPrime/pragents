@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Build-time env for Next.js (baked into the client code)
-        DATABASE_URL: "postgresql://postgres:postgres@db:5432/data_agents_db"
+        DATABASE_URL: "COMING SOON"
         NEXTAUTH_URL: "http://localhost:3000"
         NEXTAUTH_SECRET: "your-secret-key-here"
 
@@ -20,8 +20,10 @@ services:
         NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW: "/webhook/data-engineering-agent-ollama"
         NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW: "/webhook/data-engineering-agent-claude"
 
-        NEXT_PUBLIC_OPENAI_API_KEY: "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"
-        NEXT_PUBLIC_ANTHROPIC_API_KEY: "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"
+        # IMPORTANT: Use your own key, you can use the .env file to set this
+        # CRITICAL: You can run it without keys by using Ollama
+        NEXT_PUBLIC_OPENAI_API_KEY: ${NEXT_PUBLIC_OPENAI_API_KEY}
+        NEXT_PUBLIC_ANTHROPIC_API_KEY: ${NEXT_PUBLIC_ANTHROPIC_API_KEY}
         # CRITICAL FIX: Use container name instead of localhost
         NEXT_PUBLIC_OLLAMA_API_URL: "http://ollama:11434"
     ports:
