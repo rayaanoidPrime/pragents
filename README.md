@@ -10,7 +10,7 @@
 <br />
 
 <div align="center">
-  <h3>💬 DataEngineering AI agents to Empwoer Data Engineers</h3>
+  <h3>💬 DataEngineering AI Agents, Really!</h3>
   <p>Building a Practical Assistant that empowers Data Engineers to deliver results with speed and efficiency.</p>
 </div>
 
