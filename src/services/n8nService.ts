@@ -69,19 +69,30 @@ export const n8nService = {
         query
       };
 
-      // Get the appropriate workflow endpoint based on the current workflow type
-      const workflowEndpoint = this.getWorkflowEndpoint(n8nWorkflowType);
-      const apiUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+      // Determine if we should use direct connection or API route proxy
+      const isDockerEnvironment = this.isRunningInDocker();
+      
+      let apiUrl;
+      if (isDockerEnvironment) {
+        // Use API route proxy when running in Docker
+        apiUrl = `/api/n8n/workflows/${n8nWorkflowType}`;
+        console.log(`Using API proxy for Docker environment: ${apiUrl}`);
+      } else {
+        // Use direct connection for local development
+        const workflowEndpoint = this.getWorkflowEndpoint(n8nWorkflowType);
+        apiUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+        console.log(`Using direct connection for local environment: ${apiUrl}`);
+      }
       
       console.log(`Submitting query to n8n (${n8nWorkflowType}):`, payload);
-      console.log(`Using endpoint: ${apiUrl}`);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -117,6 +128,35 @@ export const n8nService = {
         status: 'completed'
       };
     }
+  },
+  
+  /**
+   * Detects whether the application is running in a Docker environment
+   * This is a heuristic and may need adjustment based on your environment
+   */
+  isRunningInDocker(): boolean {
+    // Check if the hostname contains 'n8n' which would indicate Docker usage 
+    // You can modify this check based on your specific Docker setup
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    
+    // Check if we're running in a development environment
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // If hostname contains 'localhost' or '127.0.0.1' and we're in development, 
+    // assume we're not in Docker
+    if ((hostname === 'localhost' || hostname === '127.0.0.1') && isDevelopment) {
+      return false;
+    }
+    
+    // Check if AGENT_API_URL contains Docker container references
+    const apiUrl = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+    if (apiUrl.includes('n8n:') || apiUrl.includes('ollama:')) {
+      return true;
+    }
+    
+    // Default to true to be safe - using the API proxy won't break anything
+    // even if we're not in Docker
+    return true;
   },
   
   /**
@@ -309,7 +349,8 @@ export const n8nService = {
     try {
       // Use Next.js API route as a proxy to avoid CORS issues
       const response = await fetch(`/api/n8n/health/${workflowType}`, {
-        method: 'GET'
+        method: 'GET',
+        cache: 'no-store'
       });
       
       if (!response.ok) {

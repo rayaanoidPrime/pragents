@@ -1,52 +1,125 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: data_agents_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  app:
+  web:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Build-time env for Next.js (baked into the client code)
+        DATABASE_URL: "postgresql://postgres:postgres@db:5432/data_agents_db"
+        NEXTAUTH_URL: "http://localhost:3000"
+        NEXTAUTH_SECRET: "your-secret-key-here"
+
+        # IMPORTANT: Use `n8n:5678` so the web container can talk to n8n
+        NEXT_PUBLIC_AGENT_API_URL: "http://n8n:5678"
+        NEXT_PUBLIC_AGENT_API_KEY: "your_n8n_key_here"
+
+        NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW: "/webhook/data-engineering-agent"
+        NEXT_PUBLIC_N8N_OPENAI_WORKFLOW: "/webhook/data-engineering-agent-openai"
+        NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW: "/webhook/data-engineering-agent-ollama"
+        NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW: "/webhook/data-engineering-agent-claude"
+
+        NEXT_PUBLIC_OPENAI_API_KEY: "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"
+        NEXT_PUBLIC_ANTHROPIC_API_KEY: "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"
+        # CRITICAL FIX: Use container name instead of localhost
+        NEXT_PUBLIC_OLLAMA_API_URL: "http://ollama:11434"
     ports:
       - "3000:3000"
-    depends_on:
-      - postgres
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/data_agents_db
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=your-secret-key-here
-      - AGENT_API_URL=http://localhost:5678/api/v1
-      - AGENT_API_KEY=your-api-key-here
+      # Runtime environment for your server code (and optional duplication of client vars)
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/data_agents_db"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "your-secret-key-here"
 
-  # You can uncomment this if you want to use n8n as the agent backend
-  # n8n:
-  #   image: n8nio/n8n
-  #   ports:
-  #     - "5678:5678"
-  #   environment:
-  #     - N8N_PORT=5678
-  #     - N8N_PROTOCOL=http
-  #     - N8N_HOST=localhost
-  #     - DB_TYPE=postgresdb
-  #     - DB_POSTGRESDB_HOST=postgres
-  #     - DB_POSTGRESDB_PORT=5432
-  #     - DB_POSTGRESDB_DATABASE=n8n
-  #     - DB_POSTGRESDB_USER=postgres
-  #     - DB_POSTGRESDB_PASSWORD=postgres
-  #   volumes:
-  #     - n8n_data:/home/node/.n8n
-  #   depends_on:
-  #     - postgres
+      # CRITICAL FIX: Use consistent URLs for all services
+      NEXT_PUBLIC_AGENT_API_URL: "http://n8n:5678"
+      NEXT_PUBLIC_AGENT_API_KEY: "your_n8n_key_here"
+      NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW: "/webhook/data-engineering-agent"
+      NEXT_PUBLIC_N8N_OPENAI_WORKFLOW: "/webhook/data-engineering-agent-openai"
+      NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW: "/webhook/data-engineering-agent-ollama"
+      NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW: "/webhook/data-engineering-agent-claude"
+      NEXT_PUBLIC_OPENAI_API_KEY: "sk-"
+      NEXT_PUBLIC_ANTHROPIC_API_KEY: "sk-"
+      # CRITICAL FIX: Use container name instead of localhost
+      NEXT_PUBLIC_OLLAMA_API_URL: "http://ollama:11434"
+
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - n8n
+      - ollama
+      - db
+    restart: unless-stopped
+    networks:
+      - data-engineering-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      # By binding to 0.0.0.0, n8n is reachable from the 'web' container.
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_LOG_LEVEL=info
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+    networks:
+      - data-engineering-network
+    healthcheck:
+      # "localhost" inside the n8n container is fine for the n8n process itself
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # CRITICAL ADDITION: Add the Ollama container
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - data-engineering-network
+    restart: unless-stopped
+
+  # Add database for completeness
+  db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=data_agents_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - data-engineering-network
+    restart: unless-stopped
 
 volumes:
+  n8n_data:
+    name: n8n_data
+  # New volumes for the added services
+  ollama_data:
+    name: ollama_data
   postgres_data:
-  # n8n_data:
+    name: postgres_data
+
+networks:
+  data-engineering-network:
+    driver: bridge

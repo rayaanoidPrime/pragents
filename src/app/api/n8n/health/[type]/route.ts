@@ -28,11 +28,14 @@ export async function GET(
   const workflowType = params.type || 'default';
   
   try {
-    // Get the appropriate workflow endpoint
-    const workflowEndpoint = WORKFLOW_ENDPOINTS[workflowType] || WORKFLOW_ENDPOINTS.default;
+    console.log(`Checking n8n health for ${workflowType} workflow`);
+    console.log(`N8N_BASE_URL: ${N8N_BASE_URL}`);
     
-    // Construct health check URL - using GET on the same endpoint
-    const healthCheckUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+    // First check n8n's health
+    // Important: Use /healthz for health checking, not the webhook endpoint
+    const healthCheckUrl = `${N8N_BASE_URL}/healthz`;
+    
+    console.log(`Checking n8n health at ${healthCheckUrl}`);
 
     // Try to ping the health check endpoint with a timeout
     const controller = new AbortController();
@@ -42,15 +45,28 @@ export async function GET(
       const response = await fetch(healthCheckUrl, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         signal: controller.signal,
+        cache: 'no-store'
       });
       
       clearTimeout(timeoutId);
       
+      console.log(`N8n health check response: ${response.status}`);
+      
       // Check if n8n endpoint is available
-      const n8nAvailable = response.status !== 404; // Consider any response other than 404 as available
+      const n8nAvailable = response.ok;
+      
+      if (!n8nAvailable) {
+        console.log(`N8n health check failed: ${response.status} ${response.statusText}`);
+        return NextResponse.json({
+          n8nAvailable: false,
+          modelAvailable: false,
+          message: `N8n health check failed: ${response.status} ${response.statusText}`,
+          workflow: workflowType
+        });
+      }
       
       // Now also check if the specific model API is available based on workflow type
       let modelCheckResult = {
@@ -58,7 +74,8 @@ export async function GET(
         message: ""
       };
       
-      if (n8nAvailable && workflowType !== 'default' && workflowType !== 'demo') {
+      if (workflowType !== 'default' && workflowType !== 'demo') {
+        console.log(`Checking model availability for ${workflowType}`);
         // Check corresponding model API
         switch (workflowType) {
           case 'openai':
@@ -71,31 +88,30 @@ export async function GET(
             modelCheckResult = await checkClaudeAvailability();
             break;
         }
+        console.log(`Model check result for ${workflowType}:`, modelCheckResult);
       }
       
       return NextResponse.json({
-        available: n8nAvailable && modelCheckResult.available,
-        n8nAvailable: n8nAvailable,
+        n8nAvailable: true,
         modelAvailable: modelCheckResult.available,
-        workflow: workflowType,
-        url: healthCheckUrl,
-        status: response.status,
-        message: modelCheckResult.message
+        message: modelCheckResult.message,
+        workflow: workflowType
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);
       
+      console.error(`Error fetching n8n health:`, fetchError);
+      
       // If we couldn't connect at all, the service is unavailable
       return NextResponse.json(
         {
-          available: false,
           n8nAvailable: false,
           modelAvailable: false,
           workflow: workflowType,
-          url: healthCheckUrl,
-          error: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-        },
-        { status: 200 } // Still return 200 to avoid error handling in the frontend
+          message: fetchError instanceof Error ? 
+            `Error connecting to n8n: ${fetchError.message}` : 
+            'Unknown error connecting to n8n'
+        }
       );
     }
   } catch (error) {
@@ -103,13 +119,11 @@ export async function GET(
     
     return NextResponse.json(
       {
-        available: false,
         n8nAvailable: false,
         modelAvailable: false,
         workflow: workflowType,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }
     );
   }
 }
@@ -162,7 +176,16 @@ async function checkOpenAIAvailability() {
  * Helper function to check Ollama availability
  */
 async function checkOllamaAvailability() {
-  const ollamaUrl = process.env.NEXT_PUBLIC_OLLAMA_API_URL || 'http://localhost:11434';
+  const ollamaUrl = process.env.NEXT_PUBLIC_OLLAMA_API_URL;
+  
+  if (!ollamaUrl) {
+    return {
+      available: false,
+      message: 'Ollama URL not configured in environment variables'
+    };
+  }
+  
+  console.log(`Checking Ollama availability at ${ollamaUrl}`);
   
   try {
     // Try to get the list of models from Ollama
@@ -176,7 +199,7 @@ async function checkOllamaAvailability() {
     if (response.ok) {
       return {
         available: true,
-        message: 'Ollama is running locally'
+        message: 'Ollama is running and accessible'
       };
     } else {
       return {
@@ -185,6 +208,7 @@ async function checkOllamaAvailability() {
       };
     }
   } catch (error) {
+    console.error('Error connecting to Ollama:', error);
     return {
       available: false,
       message: `Error connecting to Ollama: ${error instanceof Error ? error.message : 'Unknown error'}`

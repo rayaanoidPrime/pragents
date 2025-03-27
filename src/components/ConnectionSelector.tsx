@@ -60,10 +60,37 @@ export function ConnectionSelector({
   const resetConversation = useStore((state: StoreState) => state.resetConversation);
   const currentStrategy = useSelectedStrategy();
   
+  // Log environment variables on component mount
+  useEffect(() => {
+    console.error("=== Environment Variables Diagnostics ===");
+    console.error("NEXT_PUBLIC_OPENAI_API_KEY exists:", !!process.env.NEXT_PUBLIC_OPENAI_API_KEY);
+    console.log("NEXT_PUBLIC_OLLAMA_API_URL exists:", !!process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    console.log("NEXT_PUBLIC_OLLAMA_API_URL value:", process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    console.log("NEXT_PUBLIC_ANTHROPIC_API_KEY exists:", !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY);
+    console.log("NEXT_PUBLIC_AGENT_API_URL:", process.env.NEXT_PUBLIC_AGENT_API_URL);
+    console.log("NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW:", process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW);
+    console.log("All NEXT_PUBLIC env variables:", Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+    console.log("=======================================");
+  }, []);
+  
   // Environment variable existence checks
-  const hasOpenAIKey = (): boolean => !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  const hasOllamaUrl = (): boolean => !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
-  const hasClaudeKey = (): boolean => !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+  const hasOpenAIKey = (): boolean => {
+    const hasKey = !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    console.log("OpenAI Key check:", hasKey);
+    return hasKey;
+  };
+  
+  const hasOllamaUrl = (): boolean => {
+    const hasUrl = !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
+    console.log("Ollama URL check:", hasUrl, process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    return hasUrl;
+  };
+  
+  const hasClaudeKey = (): boolean => {
+    const hasKey = !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    console.log("Claude Key check:", hasKey);
+    return hasKey;
+  };
   
   // Define connection options
   const backendOptions: ConnectionOption[] = [
@@ -78,7 +105,7 @@ export function ConnectionSelector({
       id: 'n8n-default', 
       name: 'n8n Default', 
       icon: <Activity className="h-4 w-4" />,
-      description: 'Connect to n8n workflow engine',
+      description: 'Connect to Default n8n workflow engine',
       workflowType: 'default'
     },
     { 
@@ -107,13 +134,25 @@ export function ConnectionSelector({
     }
   ];
   
+  // Log available options
+  useEffect(() => {
+    // Force show all options for debugging
+    const allOptions = backendOptions.map(option => ({
+      ...option,
+      available: !option.envCheck || option.envCheck()
+    }));
+    console.log("Backend options availability:", allOptions.map(o => `${o.id}: ${o.available}`));
+  }, []);
+  
   // Filter out options that are missing required env vars
   const availableBackendOptions = backendOptions.filter(option => {
     // Always show demo and default options
     if (option.id === 'demo' || option.id === 'n8n-default') return true;
     
     // Check if required env vars exist
-    return !option.envCheck || option.envCheck();
+    const available = !option.envCheck || option.envCheck();
+    console.log(`Option ${option.id} availability check:`, available);
+    return available;
   });
   
   // Map store values to component state
@@ -148,6 +187,7 @@ export function ConnectionSelector({
 
   const validateCurrentConnection = async (): Promise<void> => {
     const backendOption = availableBackendOptions.find(option => option.id === selectedBackendId);
+    console.log("Validating connection for:", selectedBackendId, backendOption);
     if (backendOption) {
       await validateConnection(backendOption);
     }
@@ -175,8 +215,11 @@ export function ConnectionSelector({
     setConnectionWarning(null);
     
     try {
+      console.log(`Validating connection for ${option.id} (${option.workflowType})`);
+      
       // For demo mode, no validation needed
       if (option.id === 'demo') {
+        console.log("Demo mode selected, skipping validation");
         updateApiSettings({ 
           connectionStatus: 'connected',
           connectionError: null 
@@ -186,11 +229,14 @@ export function ConnectionSelector({
       }
       
       // Validate the connection with workflow type
+      console.log(`Calling connectionValidator for 'n8n', demo=false, workflow=${option.workflowType}`);
       const result = await connectionValidator.validateConnection(
         'n8n', 
         false,
         option.workflowType
       );
+      
+      console.log("Validation result:", result);
       
       // Update store with result
       updateApiSettings({
@@ -214,6 +260,7 @@ export function ConnectionSelector({
         });
       }
     } catch (error) {
+      console.error("Validation error:", error);
       updateApiSettings({
         connectionStatus: 'disconnected',
         connectionError: error instanceof Error ? error.message : 'Unknown connection error'
@@ -233,6 +280,7 @@ export function ConnectionSelector({
     setIsValidating(true);
     
     try {
+      console.log(`Changing backend to ${option.id} (${option.workflowType})`);
       const useDemoMode = option.id === 'demo';
       
       // Update API settings first
@@ -285,6 +333,18 @@ export function ConnectionSelector({
     return availableBackendOptions.find(option => option.id === selectedBackendId) || availableBackendOptions[0];
   };
 
+  // Log current connection settings
+  useEffect(() => {
+    console.log("Current connection settings:", {
+      selectedBackend: selectedBackendId,
+      apiSettings,
+      availableOptions: availableBackendOptions.map(o => o.id),
+      connectionStatus,
+      connectionError,
+      connectionWarning
+    });
+  }, [selectedBackendId, apiSettings, connectionWarning]);
+
   return (
     <div className={cn("flex items-center gap-3", className)}>
       {/* Use the enhanced connection status tooltip */}
@@ -309,15 +369,17 @@ export function ConnectionSelector({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[220px]">
-          {availableBackendOptions.map((option) => (
+          {/* Temporarily show all options for debugging */}
+          {backendOptions.map((option) => (
             <DropdownMenuItem 
               key={option.id}
               className={cn(
                 "flex items-center gap-2 cursor-pointer",
-                selectedBackendId === option.id && "bg-primary/10"
+                selectedBackendId === option.id && "bg-primary/10",
+                (!option.envCheck || option.envCheck()) ? "" : "opacity-50"
               )}
               onClick={() => handleBackendChange(option)}
-              disabled={isValidating}
+              disabled={isValidating || (option.envCheck && !option.envCheck())}
             >
               <div className="flex items-center gap-2 flex-1">
                 <div className="bg-muted p-1 rounded-md">
@@ -325,7 +387,10 @@ export function ConnectionSelector({
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{option.name}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {option.description}
+                    {option.envCheck && !option.envCheck() && " (missing env)"}
+                  </span>
                 </div>
               </div>
               {selectedBackendId === option.id && (
