@@ -17,12 +17,11 @@ The UI follows a clean, modern design with a focus on usability:
 - **Left Sidebar**: Contains navigation and agents list, following the LobeChat design pattern. The sidebar can be collapsed for more space.
 - **Top Tabs**: Strategy selection uses tabs for easy navigation between different data engineering approaches.
 - **Main Content**: The chat interface where multiple agents collaborate to solve data engineering problems.
-- **Right Sidebar**: Chat history that expands on click for easy reference.
 
 ## Tech Stack
 
 - Next.js with TypeScript
-- Prisma ORM for database interactions
+- Prisma ORM for database interactions**
 - Tailwind CSS with Shadcn UI components
 - Zustand for state management
 - pnpm for package management
@@ -34,7 +33,7 @@ The UI follows a clean, modern design with a focus on usability:
 - Node.js v18+ and pnpm installed
 - PostgreSQL database
 
-### Installation
+### Running Locally
 
 1. Clone the repository:
 ```bash
@@ -75,28 +74,10 @@ pnpm dev
 Alternatively, you can use Docker Compose to run the entire stack:
 
 ```bash
-docker-compose up -d
+docker-compose up -d --build
+docker-compose down
 ```
 
-## Project Structure
-
-- `/src/app` - Next.js app router pages
-- `/src/components` - React components
-  - `/src/components/ui` - Shadcn UI components
-  - `/src/components/layout` - Layout components (Sidebar, Topbar, etc.)
-  - `/src/components/agents` - Agent-related components
-  - `/src/components/strategies` - Strategy-related components
-  - `/src/components/chat` - Chat interface components
-- `/src/lib` - Utility functions and shared code
-  - `/src/lib/agents` - Agent factories and definitions
-  - `/src/lib/db` - Database schema types
-- `/src/services` - Services for API interactions
-  - `/src/services/agent` - Agent service for API calls
-  - `/src/services/chat` - Chat service for messaging
-- `/src/store` - State management with Zustand
-- `/src/types` - TypeScript type definitions
-- `/prisma` - Database schema and migrations
-- `/public` - Static assets including agent avatars
 
 ## Key Components
 
