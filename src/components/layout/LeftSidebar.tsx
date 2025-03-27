@@ -2,24 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "@/components/theme-provider";
 import {
   MessageSquare,
   Play,
   History,
   Settings,
   Brain,
-  Moon,
-  Sun,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function LeftSidebar() {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
 
   // Navigation items for the main app
   const navItems = [
@@ -111,9 +107,7 @@ export function LeftSidebar() {
         <TooltipProvider>
           <Tooltip delayDuration={300}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
+              <ThemeToggle />
             </TooltipTrigger>
             <TooltipContent side="right">
               <p>Toggle Theme</p>

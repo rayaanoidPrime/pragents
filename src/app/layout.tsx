@@ -3,7 +3,7 @@ import '@/styles/globals.css'
 import { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { cn } from '@/lib/utils'
-import { ThemeProvider } from '@/components/theme-provider'
+import Script from 'next/script'
 
 // Load Inter for UI elements
 const inter = Inter({
@@ -31,19 +31,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Inline script for theme initialization - prevents flash */}
+        <script 
+          dangerouslySetInnerHTML={{ 
+            __html: `
+              (function() {
+                const theme = localStorage.getItem('theme') || 'dark';
+                const isDark = theme === 'dark';
+                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', isDark || (!theme && systemPrefersDark));
+              })();
+            `
+          }} 
+        />
+      </head>
       <body className={cn(
         'min-h-screen bg-background antialiased',
         inter.variable,
         jetbrainsMono.variable
       )}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   )
