@@ -9,7 +9,7 @@ services:
         # Build-time env for Next.js (baked into the client code)
         DATABASE_URL: "COMING SOON"
         NEXTAUTH_URL: "http://localhost:3000"
-        NEXTAUTH_SECRET: "your-secret-key-here"
+        NEXTAUTH_SECRET: "dsadas-asdmmkasadkklasdasd-asdasdasd"
 
         # IMPORTANT: Use `n8n:5678` so the web container can talk to n8n
         NEXT_PUBLIC_AGENT_API_URL: "http://n8n:5678"
