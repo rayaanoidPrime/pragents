@@ -10,23 +10,23 @@ export default function Home() {
   const coreFeatures = [
     {
       title: "Data Engineering Agents",
-      description: "Specialized AI agents collaborate to solve complex data engineering tasks through natural conversation",
+      description: "Specialized AI agents that bridge the gap between technical and non-technical users through natural conversation",
       icon: MessageSquare,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/30",
     },
     {
-      title: "Deep Thinking Coordination",
-      description: "Multiple agents work together to analyze problems, coordinating across tools to find the optimal solution",
+      title: "Guided Data Requests",
+      description: "Agents prompt users for all essential information, ensuring thorough and well-prepared requests for data engineers",
       icon: Zap,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
       borderColor: "border-purple-500/30",
     },
     {
-      title: "Testing Environment Deployment",
-      description: "Fully deploy and test solutions in controlled environments using autonomous agents",
+      title: "Democratized Data Knowledge",
+      description: "Complex data concepts translated into accessible language, boosting overall data literacy across your organization",
       icon: Layers,
       color: "text-emerald-500",
       bgColor: "bg-emerald-500/10",
@@ -82,42 +82,42 @@ export default function Home() {
                   </div>
                 </a>
                 <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 backdrop-blur-sm">
-                  <span className="text-indigo-300 text-sm font-medium">Supercharge Your Data Engineering</span>
+                  <span className="text-indigo-300 text-sm font-medium">Alpha Version • Seeking Contributors</span>
                 </div>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-indigo-200">
-                Data Engineering <br />
+                Data Agents <br />
                 <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                  Powered by AI Agents
+                  Automating Data Usage in Your Organization
                 </span>
               </h1>
               <p className="text-xl text-slate-300 max-w-xl mb-8">
-                Leverage multiple specialized AI agents to solve complex data engineering 
-                tasks, generate optimized code, and build scalable infrastructure - empowering Data Engineers to move faster.
+              Intelligent assistants that help non-technical users access data insights while ensuring data engineers 
+              receive complete, well-prepared requests - reducing bottlenecks and democratizing data knowledge across your organization.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 h-12 px-6">
                   <Link href="/conversation" className="flex items-center gap-2">
-                    Start Building Now <ArrowRight className="h-5 w-5" />
+                    Try Alpha Version <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white h-12 px-6">
-                  <Link href="/execution">Direct Execution</Link>
+                  <Link href="https://github.com/HotTechStack/dataengineering-agent">Contribute on GitHub</Link>
                 </Button>
               </div>
 
               <div className="mt-8 grid grid-cols-3 gap-4 max-w-md">
                 <div className="flex flex-col items-center">
-                  <span className="text-small font-bold text-indigo-400">10+</span>
-                  <span className="text-sm text-slate-400">Specialized Agents</span>
+                  <span className="text-small font-bold text-indigo-400">Open</span>
+                  <span className="text-sm text-slate-400">Source</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-small font-bold text-cyan-400">Accelerate</span>
+                  <span className="text-small font-bold text-cyan-400">Community</span>
+                  <span className="text-sm text-slate-400">Driven</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-small font-bold text-purple-400">Early</span>
                   <span className="text-sm text-slate-400">Development</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-small font-bold text-purple-400">Easy</span>
-                  <span className="text-sm text-slate-400">Integration</span>
                 </div>
               </div>
             </div>
@@ -186,9 +186,9 @@ export default function Home() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
                           </div>
-                          <h2 className="text-yellow-500 font-bold">Start a multi-agent conversation</h2>
+                          <h2 className="text-yellow-500 font-bold">Alpha Preview</h2>
                           <p className="text-gray-500 text-sm max-w-md mt-2">
-                            Select agents from the panel and explore data engineering topics together.
+                            This project is in early development. Help us shape its future!
                           </p>
                         </div>
                         
@@ -197,18 +197,18 @@ export default function Home() {
                             <svg className="h-4 w-4 text-gray-700 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
-                            <h3 className="text-sm font-semibold">Frequently Asked Questions</h3>
+                            <h3 className="text-sm font-semibold">Help Build These Features</h3>
                           </div>
                           
                           <div className="space-y-2">
                             <div className="p-3 bg-white border rounded-md text-black hover:shadow-sm transition-shadow">
-                              How would you design a scalable data pipeline architecture?
+                              Natural language data query interface
                             </div>
                             <div className="p-3 bg-white border rounded-md text-black hover:shadow-sm transition-shadow">
-                              What are the best practices for data quality monitoring?
+                              Multi-agent conversation architecture
                             </div>
                             <div className="p-3 bg-white border rounded-md text-black hover:shadow-sm transition-shadow">
-                              How should we approach migrating from batch to streaming data?
+                              Request optimization for data engineering teams
                             </div>
                           </div>
                         </div>
@@ -224,9 +224,9 @@ export default function Home() {
         {/* Core features section */}
         <div className="py-16 relative z-10">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Core Features</h2>
+            <h2 className="text-3xl font-bold mb-4">Our Vision</h2>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Automate complex data engineering tasks with GenAI agents that require minimal human assistance
+              We're building a framework to bridge the gap between technical and non-technical teams
             </p>
           </div>
 
@@ -238,8 +238,48 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                 <p className="text-slate-300">{feature.description}</p>
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <span className="inline-block bg-white/10 text-xs px-2 py-1 rounded text-slate-300">Under Development</span>
+                </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* For whom section */}
+        <div className="py-16 relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Who Benefits</h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              Data Agents serve various roles across your organization
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-blue-400">Business Analysts</h3>
+              <p className="text-slate-300">
+                Generate quick insights without having to master SQL or bother data engineers with trivial tasks.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-green-400">Software Engineers</h3>
+              <p className="text-slate-300">
+                Understand data architecture quickly to integrate with existing systems or log new metrics.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-purple-400">Product Managers</h3>
+              <p className="text-slate-300">
+                Access usage metrics and performance dashboards without navigating complex data tools.
+              </p>
+            </div>
+            <div className="p-6 rounded-xl border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <h3 className="text-xl font-semibold mb-3 text-amber-400">Data Engineers</h3>
+              <p className="text-slate-300">
+                Receive well-prepared requests with all necessary parameters, reducing time spent on clarifications.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -272,48 +312,118 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Vision section */}
+        {/* Implementation section */}
         <div className="py-16 relative z-10">
           <div className="rounded-2xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-800/30 p-8 md:p-12 backdrop-blur-sm">
-            <h2 className="text-3xl font-bold mb-6 text-center">Our Vision</h2>
+            <h2 className="text-3xl font-bold mb-6 text-center">Implementation Essentials</h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8 text-center">
-              The ultimate goal is to automate data engineering as much as possible using AI, helping data engineers move faster and focus on high-value tasks.
+              Key components that make Data Agents effective in your organization
             </p>
             <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
               <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Evolving Technology</h3>
+                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Intuitive, Conversational Interfaces</h3>
                 <p className="text-slate-300">
-                  As requirements grow, we'll adapt and incorporate new technologies. This platform is designed to evolve with the changing landscape of data engineering and AI.
+                  Natural language processing encourages adoption by users who aren't fluent in SQL or data tools.
                 </p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Community Driven</h3>
+                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Seamless Integration</h3>
                 <p className="text-slate-300">
-                  Being an MIT licensed open-source project, we welcome contributions from the community to enhance capabilities and expand the reach of AI in data engineering.
+                  Connecting to BI platforms, data warehouses, and documentation ensures the agent can retrieve and display relevant information.
+                </p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Adaptive Learning</h3>
+                <p className="text-slate-300">
+                  Agents learn from each query and feedback loop, continually improving their recommendations.
+                </p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <h3 className="text-xl font-semibold mb-3 text-indigo-300">Escalation Protocols</h3>
+                <p className="text-slate-300">
+                  When a query exceeds the agent's capabilities, clear rules guide escalation to data engineers for advanced support.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CTA section */}
-        <div className="py-16 relative z-10">
+{/* CTA section */}
+    §   <div className="py-16 relative z-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to Transform Your Data Engineering Workflow?
+              Be a Contributor
             </h2>
             <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">
-              Start building with AI-powered data engineering agents today.
+              Contributing to open source takes many forms - coding, documenting, testing, or sharing ideas. Every contribution matters!
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 h-12 px-8">
-                <Link href="/conversation" className="flex items-center gap-2">
-                  Get Started <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white h-12 px-8">
-                <Link href="https://github.com/HotTechStack/dataengineering-agent">View on GitHub</Link>
-              </Button>
+            <div className="flex flex-col items-center">
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 h-12 px-8">
+                  <Link href="/conversation" className="flex items-center gap-2">
+                    Start Now <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white h-12 px-8">
+                  <Link href="https://github.com/HotTechStack/dataengineering-agent" className="flex items-center gap-2">
+                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    GitHub Repo
+                  </Link>
+                </Button>
+              </div>
+              
+              <div className="max-w-3xl mx-auto bg-slate-800/30 border border-slate-700/50 rounded-xl p-6 mb-8">
+                <h3 className="text-xl font-semibold mb-4 text-indigo-300">Ways to Contribute</h3>
+                <ul className="text-left space-y-2 text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Check out open issues on GitHub and pick a task that matches your skills</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Try the current version and report bugs or suggest improvements</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Help document features, write tutorials, or create demos</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Share the project with others who might be interested in contributing</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-6 max-w-3xl">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                  <h3 className="text-lg font-semibold mb-2 text-indigo-300">Expert Knowledge</h3>
+                  <p className="text-sm text-slate-300">
+                    Share your expertise in BI tools, data warehouses, and analytics workflows to inform agent design
+                  </p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                  <h3 className="text-lg font-semibold mb-2 text-indigo-300">Use Cases</h3>
+                  <p className="text-sm text-slate-300">
+                    Suggest real-world scenarios where Data Agents could solve problems for your team or organization
+                  </p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                  <h3 className="text-lg font-semibold mb-2 text-indigo-300">Testing & Feedback</h3>
+                  <p className="text-sm text-slate-300">
+                    Test in different environments and provide valuable feedback to help shape development priorities
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -322,9 +432,7 @@ export default function Home() {
         <div className="py-12 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm relative z-10">
           <p>© 2025 HotTechStack. All Rights Reserved.</p>
           <div className="flex items-center gap-8">
-            {/* <Link href="/documentation" className="hover:text-white transition-colors">Documentation</Link> */}
             <Link href="https://github.com/HotTechStack/dataengineering-agent" className="hover:text-white transition-colors">GitHub</Link>
-            {/* <Link href="/about" className="hover:text-white transition-colors">About</Link> */}
           </div>
         </div>
       </div>

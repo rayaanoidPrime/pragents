@@ -6,10 +6,10 @@ import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
 const N8N_BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:5678';
 
 // Workflow endpoints from environment variables with fallbacks
-const DEFAULT_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW || '/webhook/data-engineering-agent';
-const OPENAI_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OPENAI_WORKFLOW || '/webhook/data-engineering-agent';
-const OLLAMA_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW || '/webhook/data-engineering-agent';
-const CLAUDE_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW || '/webhook/data-engineering-agent';
+const DEFAULT_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW || '/webhook/dataengineering-common';
+const OPENAI_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OPENAI_WORKFLOW || '/webhook/dataengineering-common';
+const OLLAMA_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW || '/webhook/dataengineering-common';
+const CLAUDE_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW || '/webhook/dataengineering-common';
 
 // Define workflow endpoints mapping
 const WORKFLOW_ENDPOINTS: Record<string, string> = {
@@ -24,6 +24,7 @@ interface N8nRequestPayload {
   selectedAgentIds: string[];
   selectedStrategy: string;
   query: string;
+  modelType: string; // Added modelType parameter
 }
 
 interface N8nResponse {
@@ -63,10 +64,24 @@ export const n8nService = {
     
     // Otherwise, try to use the real n8n service
     try {
+      // Get the modelType - should be one of: 'default', 'openai', 'ollama', 'claude', 'demo'
+      // First try to use n8nWorkflowType from apiSettings since it should have the correct type
+      let modelType = apiSettings.n8nWorkflowType || "default";
+      
+      // Validate modelType to ensure it's one of the expected values
+      const validModelTypes = ['default', 'openai', 'ollama', 'claude', 'demo'];
+      if (!validModelTypes.includes(modelType)) {
+        console.warn(`Invalid modelType "${modelType}", falling back to "default"`);
+        modelType = "default";
+      }
+      
+      console.log(`Using model type: ${modelType}`);
+      
       const payload: N8nRequestPayload = {
         selectedAgentIds,
         selectedStrategy: strategyId,
-        query
+        query,
+        modelType // Include the model type in the payload
       };
 
       // Determine if we should use direct connection or API route proxy
@@ -84,7 +99,7 @@ export const n8nService = {
         console.log(`Using direct connection for local environment: ${apiUrl}`);
       }
       
-      console.log(`Submitting query to n8n (${n8nWorkflowType}):`, payload);
+      console.log(`Submitting query to n8n with model type: ${modelType}`, payload);
 
       const response = await fetch(apiUrl, {
         method: 'POST',

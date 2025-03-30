@@ -64,31 +64,31 @@ export function ConnectionSelector({
   useEffect(() => {
     console.error("=== Environment Variables Diagnostics ===");
     console.error("NEXT_PUBLIC_OPENAI_API_KEY exists:", !!process.env.NEXT_PUBLIC_OPENAI_API_KEY);
-    console.log("NEXT_PUBLIC_OLLAMA_API_URL exists:", !!process.env.NEXT_PUBLIC_OLLAMA_API_URL);
-    console.log("NEXT_PUBLIC_OLLAMA_API_URL value:", process.env.NEXT_PUBLIC_OLLAMA_API_URL);
-    console.log("NEXT_PUBLIC_ANTHROPIC_API_KEY exists:", !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY);
-    console.log("NEXT_PUBLIC_AGENT_API_URL:", process.env.NEXT_PUBLIC_AGENT_API_URL);
-    console.log("NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW:", process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW);
-    console.log("All NEXT_PUBLIC env variables:", Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
-    console.log("=======================================");
+    console.debug("NEXT_PUBLIC_OLLAMA_API_URL exists:", !!process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    console.debug("NEXT_PUBLIC_OLLAMA_API_URL value:", process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    console.debug("NEXT_PUBLIC_ANTHROPIC_API_KEY exists:", !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY);
+    console.debug("NEXT_PUBLIC_AGENT_API_URL:", process.env.NEXT_PUBLIC_AGENT_API_URL);
+    console.debug("NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW:", process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW);
+    console.debug("All NEXT_PUBLIC env variables:", Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+    console.debug("=======================================");
   }, []);
   
   // Environment variable existence checks
   const hasOpenAIKey = (): boolean => {
     const hasKey = !!process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    console.log("OpenAI Key check:", hasKey);
+    console.debug("OpenAI Key check:", hasKey);
     return hasKey;
   };
   
   const hasOllamaUrl = (): boolean => {
     const hasUrl = !!process.env.NEXT_PUBLIC_OLLAMA_API_URL;
-    console.log("Ollama URL check:", hasUrl, process.env.NEXT_PUBLIC_OLLAMA_API_URL);
+    console.debug("Ollama URL check:", hasUrl, process.env.NEXT_PUBLIC_OLLAMA_API_URL);
     return hasUrl;
   };
   
   const hasClaudeKey = (): boolean => {
     const hasKey = !!process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
-    console.log("Claude Key check:", hasKey);
+    console.debug("Claude Key check:", hasKey);
     return hasKey;
   };
   

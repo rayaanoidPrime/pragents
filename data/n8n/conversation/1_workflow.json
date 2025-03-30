@@ -1,0 +1,892 @@
+{
+  "name": "1 workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\nfrom datetime import datetime\n\n# Define roles and responsibilities for each agent\n\n# Process each input item\nresults = []\nagent_roles = {}\nselected_ids = []\nquery = \"\"\n\npreviousStartData = _(\"start\").all();\nfor item in previousStartData:\n  itemDict = item.json.to_py()\n  # print(f\"Json Body ======>> {itemDict.get('body').get('selectedAgentIds')}\")\n  selected_ids.append(itemDict.get('body').get('selectedAgentIds'))\n  query = itemDict.get('body').get('query')\n\nprint(f\"selected_idsselected_ids {selected_ids} queryquery {query}\")\n\nextracttData = _(\"extract\").all();\nfor item in extracttData:\n  itemDict = item.json.to_py()\n  id = itemDict.get('data').get('id')\n  title = itemDict.get('data').get('title')\n  prompt = itemDict.get('data').get('prompt')\n  # print(f\"EXTRACT Body ======>> {itemDict.get('data').get('id')}\")\n  agent_roles[id] = prompt\n\n# print(f\"agent_roles {agent_roles.get('data-engineer')}\")\n\nrole_descriptions = \"\\n\\n\".join([\n    f\"Agent ID: {aid}\\n{agent_roles.get(aid, f'Unknown agent: {aid}')}\"\n    for aid in selected_ids[0]\n])\n\nprompt = f\"\"\"You are a multi-agent data engineering system that simulates multiple expert agents collaborating together. Based on the selected agents, you'll provide comprehensive solutions that blend expertise from all selected specialists.\n\nCurrently, you are acting as these experts:\n{selected_ids[0]}\n\nROLE DESCRIPTIONS:\n{role_descriptions}\n\nFor your response:\n1. Structure your answer to clearly show which expert is providing which part of the solution\n2. Include practical implementation details and examples where appropriate\n3. Address scalability, reliability, and performance considerations\n4. If relevant, include sample architecture diagrams described in text format\n5. Provide configurations or flow diagram when they would be helpful\n6. DO NOT Provide Code Snippets, unless explicitly asked for but Focus more on Content\n\nRemember: Focus on providing actionable advice that directly addresses the query without any unnecessary introductions.\n\nUser Query: {query}\n\"\"\"\n\nitem.json[\"prompt\"] = prompt\nresults.append(item)\n\nreturn results"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        600
+      ],
+      "id": "51fd4bca-973b-4ce1-996d-1fb045415854",
+      "name": "Process Agent Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4840,
+        40
+      ],
+      "id": "add21e35-ee03-4ad5-bfda-76156712f5a6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "context",
+        "options": {}
+      },
+      "id": "c53c0b58-4266-44f6-bb90-c3bdd309cd09",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        2200,
+        180
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "Get Context",
+        "height": 537,
+        "width": 755,
+        "color": 7
+      },
+      "id": "8ab6d46f-379d-458a-a26f-81dd41c3ec93",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1660,
+        -40
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c313b5a9-870a-47d8-958e-871704385ec8",
+      "name": "Chat Memory Manager",
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "position": [
+        1820,
+        180
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "data_agent_conversation_X112n997y"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2060,
+        840
+      ],
+      "id": "a267ebba-a09a-49f0-98cc-4ebceb003ba7",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {
+          "loadPreviousSession": "memory"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1220,
+        -20
+      ],
+      "id": "baf20a9f-1cf6-4a5f-ae33-9509ba6cd8e6",
+      "name": "Chat Trigger",
+      "webhookId": "b2f479b7-83af-4ddf-a494-621127b5f96c"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "user",
+              "message": "={{ $('start').item.json.body.query }}"
+            },
+            {
+              "type": "ai",
+              "message": "={{ $json.output.summary }}"
+            }
+          ]
+        }
+      },
+      "id": "50bac42e-9077-4d6e-87b7-0a571bbb7304",
+      "name": "Insert Chat",
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "position": [
+        4620,
+        -660
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## Save Context",
+        "height": 231.05945912581728,
+        "width": 321.2536584847704,
+        "color": 6
+      },
+      "id": "3f86f96c-806d-47da-ba7e-3d95901a627d",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1900,
+        760
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### The \"Get Chat,\" \"Insert Chat,\" and \"Window Buffer Memory\" nodes will help the LLM model maintain context throughout the conversation.",
+        "height": 91.01435855269375,
+        "width": 487.4293487597613,
+        "color": 6
+      },
+      "id": "cf35624a-130d-4846-a043-592e247f7bfe",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1680,
+        0
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        1000
+      ],
+      "id": "2e5e8c4b-16aa-4a84-bcda-63cc9c214803",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "httpMethod": [
+          "POST",
+          "GET"
+        ],
+        "path": "dataengineering-common",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "44bbf86e-0f31-494e-9b86-cda9113425ca",
+      "name": "start",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        740
+      ],
+      "webhookId": "87f6c8c3-55de-4661-8fd9-2727490b076f"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/avatars/*.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        20,
+        500
+      ],
+      "id": "36ed94dd-dc41-4395-a213-7c094803cbff",
+      "name": "Read/Write Files from Disk",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        220,
+        500
+      ],
+      "id": "8b7cdb0e-42ec-4edd-8beb-09379099e31d",
+      "name": "extract"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('start').item.json.body.modelType }}",
+                    "rightValue": "openai",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "62cfde5c-a347-4d09-ac54-58666db166fd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "abf337b7-fc5b-4136-a843-19cd82359f8f",
+                    "leftValue": "={{ $('start').item.json.body.modelType }}",
+                    "rightValue": "claude",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9f6b39b6-4bf4-4942-825c-1f469a00220e",
+                    "leftValue": "={{ $('start').item.json.body.modelType }}",
+                    "rightValue": "ollama",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4787cde4-1838-4a03-bea9-232d49f6df77",
+                    "leftValue": "={{ $('start').item.json.body.modelType }}",
+                    "rightValue": "default",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2620,
+        160
+      ],
+      "id": "7e4cb809-1251-4272-bcbf-5465db48ef6e",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "content": "## OpenAI\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 620,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        -820
+      ],
+      "id": "abb4e80e-0ae2-4662-8e39-ddd5f4da7bef",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-3-7-sonnet-20250219",
+          "cachedResultName": "Claude 3.7 Sonnet"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        3280,
+        380
+      ],
+      "id": "92aa9948-8ac8-4674-b54f-3d1ebfc3346b",
+      "name": "Anthropic Chat Model1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "0mssuZzBnJ7BB9lE",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"summary\": \"\",\n  \"agents\": [\n    {\n      \"agentId\": \"\",\n      \"agentName\": \"\",\n      \"content\": \"\"\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3460,
+        380
+      ],
+      "id": "9c5d7ac2-75ee-43f1-80b5-9f0a737d85c3",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "content": "## Claude\n\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 620,
+        "width": 620,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        -20
+      ],
+      "id": "1696fc1f-18ce-4072-9216-9ca6f17cec0f",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "o3-mini",
+          "mode": "list",
+          "cachedResultName": "o3-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3260,
+        -420
+      ],
+      "id": "7ec4f1a7-db6e-4325-ada7-766365eb34eb",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "J3VsZCs00ThQuWaN",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"summary\": \"\",\n  \"agents\": [\n    {\n      \"agentId\": \"\",\n      \"agentName\": \"\",\n      \"content\": \"\"\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3460,
+        -420
+      ],
+      "id": "0dcc1e35-834d-4539-b41c-bba07529fb35",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Process Agent Request').item.json.prompt }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=To maintain context and fully understand the user's question, always review the previous conversation between you and him before providing an answer. Always ensure generating output without s JSON Parsing ERROR.\nThis is the previous conversation: {{ $('Aggregate').item.json[\"context\"].map(m => ` Human: ${m.human || 'undefined'} AI Assistant: ${m.ai || 'undefined'} `).join('') }}"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        3280,
+        -680
+      ],
+      "id": "077761ce-13f5-469f-b0d4-bf8b4429c266",
+      "name": "OpenAI LLM Chain",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Process Agent Request').item.json.prompt }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=To maintain context and fully understand the user's question, always review the previous conversation between you and him before providing an answer. Always ensure generating output without s JSON Parsing ERROR.\nThis is the previous conversation: {{ $('Aggregate').item.json[\"context\"].map(m => ` Human: ${m.human || 'undefined'} AI Assistant: ${m.ai || 'undefined'} `).join('') }}"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        3280,
+        120
+      ],
+      "id": "20aaa476-d96d-4f13-b6cb-5c20e96d0af0",
+      "name": "Claude LLM Chain",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"summary\": \"\",\n  \"agents\": [\n    {\n      \"agentId\": \"\",\n      \"agentName\": \"\",\n      \"content\": \"\"\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3480,
+        1140
+      ],
+      "id": "9886b0cf-a866-497a-9c3b-098b35c2cf9f",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "content": "## Ollama\n\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 620,
+        "width": 620,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        760
+      ],
+      "id": "23e8cb29-c1fe-459b-8b4d-83d9796015b0",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Process Agent Request').item.json.prompt }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=To maintain context and fully understand the user's question, always review the previous conversation between you and him before providing an answer. Always ensure generating output without s JSON Parsing ERROR.\nThis is the previous conversation: {{ $('Aggregate').item.json[\"context\"].map(m => ` Human: ${m.human || 'undefined'} AI Assistant: ${m.ai || 'undefined'} `).join('') }}"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        3280,
+        900
+      ],
+      "id": "a11315ec-7ea6-453f-8c28-8b89df449160",
+      "name": "Ollama LLM Chain",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-r1:7b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        1140
+      ],
+      "id": "816fc7d9-3af6-4b64-bb47-c41f6c77044d",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "yPA707CsQLhWpvLV",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Prompt reader \nRead the Prompts stored in the dir",
+        "height": 360,
+        "width": 440
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        380
+      ],
+      "id": "ce38dfca-680a-447a-93b0-1fc9ed79ab19",
+      "name": "Sticky Note6"
+    }
+  ],
+  "pinData": {
+    "start": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "user-agent": "curl/8.7.1",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "content-length": "186"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "selectedAgentIds": [
+              "data-architect",
+              "data-engineer"
+            ],
+            "selectedStrategy": "collaborative",
+            "query": "How to design a scalable data pipeline for real-time analytics?"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/data-engineering-agent",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Process Agent Request": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Chat Trigger",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Insert Chat",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "start": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract": {
+      "main": [
+        [
+          {
+            "node": "Process Agent Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "OpenAI LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Claude LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Claude LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Claude LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "OpenAI LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "OpenAI LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Insert Chat",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Ollama LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Ollama LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "21116cda-2838-469f-9f12-fa40f794274a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9cd4b56a8550f03129538b7ebc5456172e10a568573c8b63463f9ce7f70cad21"
+  },
+  "id": "xHGNEWurOgKeq7rN",
+  "tags": [
+    {
+      "createdAt": "2025-03-27T12:18:10.994Z",
+      "updatedAt": "2025-03-27T12:18:10.994Z",
+      "id": "TnX5QP1h95ttxM9c",
+      "name": "claude"
+    },
+    {
+      "createdAt": "2025-03-27T12:17:50.289Z",
+      "updatedAt": "2025-03-27T12:17:50.289Z",
+      "id": "gYrnrGlauCXT9LkQ",
+      "name": "dataengg"
+    }
+  ]
+}
