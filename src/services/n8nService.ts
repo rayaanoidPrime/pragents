@@ -153,6 +153,8 @@ export const n8nService = {
     // Check if the hostname contains 'n8n' which would indicate Docker usage 
     // You can modify this check based on your specific Docker setup
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    console.log('Hostname:===========', hostname);
+    console.log('Docker check:@@@@@@@@@@@', hostname.includes('n8n'));
     
     // Check if we're running in a development environment
     const isDevelopment = process.env.NODE_ENV === 'development';

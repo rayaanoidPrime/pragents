@@ -151,7 +151,7 @@ export function ConnectionSelector({
     
     // Check if required env vars exist
     const available = !option.envCheck || option.envCheck();
-    console.log(`Option ${option.id} availability check:`, available);
+    console.debug(`Option ${option.id} availability check:`, available);
     return available;
   });
   

@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Loader2, SendHorizontal, Paperclip, Mic, Code, 
   Brain, Clock, MessageSquare, CornerDownRight, Sparkles,
-  RefreshCw, XCircle, ChevronDown, Bot
+  RefreshCw, XCircle
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
-import { Agent, Message, Strategy, StoreState } from '@/types';
+import { Agent, Message } from '@/types';
 
 interface NextQuestion {
   id: string;
@@ -66,14 +66,6 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       textareaRef.current.focus();
     }
   }, [isLoading, conversationStatus]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "inherit";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [inputValue]);
 
   // Handle removing the thinking message when responses come in
   useEffect(() => {
@@ -304,171 +296,176 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
               </span>
             </h2>
             
-            {/* Add the ConnectionStatus component with improved styling */}
+            {/* Connection selector */}
             <div className="flex items-center gap-2">
               <ConnectionSelector />
             </div>
           </div>
         </div>
         
-        {/* Messages area - Full width */}
-        <ScrollArea className="flex-1 px-4 py-6 w-full" ref={scrollAreaRef}>
-        {processedMessages.length === 0 ? (
-          <WelcomeMessage />
-        ) : (
-          <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
-            <AnimatePresence>
-              {filterMessages(processedMessages).map(msg => (
-                <ChatMessage 
-                  key={msg.id} 
-                  message={{
-                    ...msg,
-                    timestamp: new Date(msg.createdAt),
-                    isPending: msg.type === "thinking",
-                    hasCode: msg.content ? msg.content.includes('```') : false,
-                    isCoordinator: msg.agentId === "coordinator"
-                  }} 
-                  showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
+        {/* Structure the layout with fixed heights */}
+        <div className="flex flex-col h-full">
+          {/* Messages area - Takes exactly 80% of the height */}
+          <div style={{ height: "80%" }} className="overflow-hidden">
+            <ScrollArea className="h-full w-full px-4 py-6" ref={scrollAreaRef}>
+              {processedMessages.length === 0 ? (
+                <WelcomeMessage />
+              ) : (
+                <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
+                  <AnimatePresence>
+                    {filterMessages(processedMessages).map(msg => (
+                      <ChatMessage 
+                        key={msg.id} 
+                        message={{
+                          ...msg,
+                          timestamp: new Date(msg.createdAt),
+                          isPending: msg.type === "thinking",
+                          hasCode: msg.content ? msg.content.includes('```') : false,
+                          isCoordinator: msg.agentId === "coordinator"
+                        }} 
+                        showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
+                      />
+                    ))}
+                  </AnimatePresence>
+                  
+                  {/* Next questions */}
+                  {nextQuestions.length > 0 && conversationStatus === "active" && (
+                    <NextQuestionsPanel />
+                  )}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+          
+          {/* Input area - Fixed at 20% of the container height */}
+          <div style={{ height: "20%" }} className="border-t bg-background/90 backdrop-blur-sm w-full">
+            {conversationStatus === "idle" || conversationStatus === "active" ? (
+              <div className="h-full flex flex-col relative">
+                <Textarea
+                  ref={textareaRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    conversationStatus === "idle"
+                      ? "Enter a topic for agents to discuss..."
+                      : "Ask a follow-up question..."
+                  }
+                  className="h-full min-h-full pr-16 resize-none text-base w-full
+                    border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
+                  disabled={isProcessing}
                 />
-              ))}
-            </AnimatePresence>
-            
-            {/* Next questions */}
-            {nextQuestions.length > 0 && conversationStatus === "active" && (
-              <NextQuestionsPanel />
+                <div className="absolute right-3 bottom-3 flex space-x-1.5">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Paperclip className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Attach file</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Mic className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Voice input</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Code className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Code snippet</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="submit"
+                          size="icon"
+                          className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          disabled={
+                            inputValue.trim() === "" ||
+                            isProcessing ||
+                            selectedAgents.length === 0
+                          }
+                          onClick={handleSendMessage}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <SendHorizontal className="h-5 w-5" />
+                          )}
+                          <span className="sr-only">Send</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Send message</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            ) : conversationStatus === "complete" ? (
+              <div className="flex space-x-4 w-full p-4 h-full items-center justify-center">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-primary/20 text-base py-5 rounded-lg"
+                  onClick={() => resetConversation()}
+                >
+                  <RefreshCw className="h-5 w-5 mr-2 text-primary" />
+                  New Conversation
+                </Button>
+                <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-5 rounded-lg">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Save Discussion
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4 w-full p-4 h-full flex flex-col items-center justify-center">
+                <p className="text-base text-destructive">
+                  An error occurred. Please try starting a new conversation.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 text-base border-primary/20 py-5 rounded-lg"
+                  onClick={() => resetConversation()}
+                >
+                  Reset Conversation
+                </Button>
+              </div>
             )}
           </div>
-        )}
-      </ScrollArea>
-        
-        {/* Input area - Full width */}
-        <div className="border-t bg-background/90 backdrop-blur-sm w-full relative">
-          {conversationStatus === "idle" || conversationStatus === "active" ? (
-            <>
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  conversationStatus === "idle"
-                    ? "Enter a topic for agents to discuss..."
-                    : "Ask a follow-up question..."
-                }
-                className="min-h-[60px] max-h-[200px] pr-16 resize-none text-base w-full
-                  border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
-                disabled={isProcessing}
-              />
-              <div className="absolute right-3 bottom-3 flex space-x-1.5">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Paperclip className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Attach file</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Mic className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Voice input</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Code className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Code snippet</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        size="icon"
-                        className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={
-                          inputValue.trim() === "" ||
-                          isProcessing ||
-                          selectedAgents.length === 0
-                        }
-                        onClick={handleSendMessage}
-                      >
-                        {isProcessing ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <SendHorizontal className="h-5 w-5" />
-                        )}
-                        <span className="sr-only">Send</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Send message</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </>
-          ) : conversationStatus === "complete" ? (
-            <div className="flex space-x-4 w-full p-4">
-              <Button 
-                variant="outline" 
-                className="flex-1 border-primary/20 text-base py-5 rounded-lg"
-                onClick={() => resetConversation()}
-              >
-                <RefreshCw className="h-5 w-5 mr-2 text-primary" />
-                New Conversation
-              </Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-5 rounded-lg">
-                <Sparkles className="h-5 w-5 mr-2" />
-                Save Discussion
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-4 w-full p-4">
-              <p className="text-base text-destructive">
-                An error occurred. Please try starting a new conversation.
-              </p>
-              <Button 
-                variant="outline" 
-                className="mt-4 text-base border-primary/20 py-5 rounded-lg"
-                onClick={() => resetConversation()}
-              >
-                Reset Conversation
-              </Button>
-            </div>
-          )}
         </div>
       </Card>
     </div>

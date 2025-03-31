@@ -68,27 +68,21 @@ const defaultAgents: Agent[] = [
 // Mock strategies data
 const defaultStrategies: Strategy[] = [
   {
-    id: "sequential",
-    name: "Sequential",
-    description: "Agents respond in sequence, building on previous responses",
-    color: "#2196F3",
-    icon: "arrow-right"
-  },
-  {
     id: "collaborative",
     name: "Collaborative",
     description: "Agents work together to generate a comprehensive solution",
     color: "#4CAF50",
     icon: "users"
   },
-  {
-    id: "debate",
-    name: "Debate",
-    description: "Agents discuss different approaches to solve the problem",
-    color: "#FF9800",
-    icon: "message-square"
-  }
+  // {
+  //   id: "debate",
+  //   name: "Debate",
+  //   description: "Agents discuss different approaches to solve the problem",
+  //   color: "#FF9800",
+  //   icon: "message-square"
+  // }
 ];
+
 
 export const useStore = create<StoreState>((set, get) => ({
   // API Settings
