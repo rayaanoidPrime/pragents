@@ -9,25 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { Search, Users, Layers, Plus, BarChart2, Code, Palette, Stethoscope } from "lucide-react";
+import { Search, Users, Layers, Plus, BarChart2, Code, Palette, Stethoscope, Lock } from "lucide-react";
 import { AgentSelector } from "../agents/AgentSelector";
 import { StrategySelector } from "../strategies/StrategySelector";
+import { StoreState, Strategy } from "@/types";
 
 export function AgentStrategyPanel() {
   const [activeTab, setActiveTab] = useState<string>("agents");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   
-  const selectedAgentIds = useStore((state) => state.selectedAgentIds);
-  const selectedStrategy = useStore((state) => state.selectedStrategy);
-  const strategies = useStore((state) => state.strategies);
+  // Add proper type annotations to useStore selectors
+  const selectedAgentIds = useStore((state: StoreState) => state.selectedAgentIds);
+  const selectedStrategy = useStore((state: StoreState) => state.selectedStrategy);
+  const strategies = useStore((state: StoreState) => state.strategies);
   const MAX_AGENTS = 4;
   
   // Get current strategy name
-  const currentStrategy = strategies.find(s => s.id === selectedStrategy);
+  const currentStrategy = strategies.find((s: Strategy) => s.id === selectedStrategy);
   
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full border-r">
       <div className="p-3 border-b">
         <Tabs defaultValue="agents" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-2">
@@ -61,17 +63,18 @@ export function AgentStrategyPanel() {
         />
       </div>
       
-      <div className="flex-1 overflow-auto">
+      {/* Make sure this takes the full remaining height */}
+      <div className="flex-1 flex flex-col h-full min-h-0">
         {/* Agent tab content */}
         {activeTab === "agents" && (
-          <ScrollArea className="h-full">
+          <ScrollArea className="flex-1 h-full">
             <div className="p-3">
               {/* Agent category filters */}
               <div className="mb-4">
                 <ToggleGroup
                   type="single"
                   value={categoryFilter}
-                  onValueChange={value => value && setCategoryFilter(value)}
+                  onValueChange={(value: string) => value && setCategoryFilter(value)}
                   className="justify-start flex-wrap gap-1"
                 >
                   <ToggleGroupItem
@@ -145,10 +148,13 @@ export function AgentStrategyPanel() {
               
               <Button 
                 variant="ghost" 
-                className="w-full mt-4 text-primary border border-dashed border-primary/30 hover:bg-primary/5"
+                className="w-full mt-4 text-muted-foreground border border-dashed border-primary/30 hover:bg-primary/5 opacity-80 relative overflow-hidden group"
+                disabled
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700"></div>
                 <Plus className="mr-2 h-4 w-4" />
-                Add custom agent
+                Custom Agent
+                <span className="ml-1 bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">Coming Soon(v0.0.2)</span>
               </Button>
             </div>
           </ScrollArea>
@@ -156,7 +162,7 @@ export function AgentStrategyPanel() {
         
         {/* Strategy tab content */}
         {activeTab === "strategy" && (
-          <ScrollArea className="h-full">
+          <ScrollArea className="flex-1 h-full">
             <div className="p-3">
               {currentStrategy && (
                 <div className="mb-4 p-3 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
@@ -167,8 +173,8 @@ export function AgentStrategyPanel() {
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center"
                       style={{
-                        backgroundColor: `${currentStrategy.color}20`,
-                        color: currentStrategy.color,
+                        backgroundColor: `${currentStrategy.color || '#6366F1'}20`,
+                        color: currentStrategy.color || '#6366F1',
                       }}
                     >
                       <Layers className="h-4 w-4" />
@@ -184,7 +190,60 @@ export function AgentStrategyPanel() {
               )}
               
               {/* Use the StrategySelector component */}
-              <StrategySelector searchQuery={searchQuery} />
+              <StrategySelector/>
+              
+              {/* Additional Coming Soon Strategy Cards */}
+              <div className="mt-4 space-y-3">
+                {/* Expert Review Strategy - Coming Soon */}
+                <div className="p-3 border rounded-lg flex items-start gap-3 cursor-not-allowed opacity-75">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">Expert Review</div>
+                      <span className="flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">
+                        <Lock className="h-3 w-3" />
+                        Coming Soon(v0.0.2)
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Agents evaluate and critique each other's responses
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Specialized Task Strategy - Coming Soon */}
+                <div className="p-3 border rounded-lg flex items-start gap-3 cursor-not-allowed opacity-75">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">Specialized Task</div>
+                      <span className="flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">
+                        <Lock className="h-3 w-3" />
+                        Coming Soon
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Each agent handles a specific aspect of the problem
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Custom Strategy Button */}
+                <Button 
+                  variant="ghost" 
+                  className="w-full mt-4 text-muted-foreground border border-dashed border-primary/30 hover:bg-primary/5 opacity-80 relative overflow-hidden group"
+                  disabled
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700"></div>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Custom Strategy
+                  <span className="ml-1 bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full font-medium">Coming Soon</span>
+                </Button>
+              </div>
             </div>
           </ScrollArea>
         )}

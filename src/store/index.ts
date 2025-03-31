@@ -1,9 +1,10 @@
 // src/store/index.ts
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { Agent, Message, Strategy, Conversation, ApiSettings } from '@/types';
+import { Agent, Message, Strategy, Conversation, ApiSettings, StoreState, N8nWorkflowType } from '@/types';
 import { n8nService } from '@/services/n8nService';
 import { connectionValidator } from '@/services/connectionValidator';
+
 
 // Initial API settings with n8n connection status
 const initialApiSettings: ApiSettings = {
@@ -67,27 +68,21 @@ const defaultAgents: Agent[] = [
 // Mock strategies data
 const defaultStrategies: Strategy[] = [
   {
-    id: "sequential",
-    name: "Sequential",
-    description: "Agents respond in sequence, building on previous responses",
-    color: "#2196F3",
-    icon: "arrow-right"
-  },
-  {
     id: "collaborative",
     name: "Collaborative",
     description: "Agents work together to generate a comprehensive solution",
     color: "#4CAF50",
     icon: "users"
   },
-  {
-    id: "debate",
-    name: "Debate",
-    description: "Agents discuss different approaches to solve the problem",
-    color: "#FF9800",
-    icon: "message-square"
-  }
+  // {
+  //   id: "debate",
+  //   name: "Debate",
+  //   description: "Agents discuss different approaches to solve the problem",
+  //   color: "#FF9800",
+  //   icon: "message-square"
+  // }
 ];
+
 
 export const useStore = create<StoreState>((set, get) => ({
   // API Settings
@@ -143,7 +138,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
   
-  setBackendType: async (backendType: string, workflowType: string = 'default', useDemoMode: boolean = false) => {
+  setBackendType: async (backendType: string, workflowType: N8nWorkflowType = 'default', useDemoMode: boolean = false) => {
     set((state) => ({
       apiSettings: {
         ...state.apiSettings,
@@ -162,7 +157,7 @@ export const useStore = create<StoreState>((set, get) => ({
   // Agents state
   agents: defaultAgents,
   selectedAgentIds: [],
-  selectAgent: (agentId) => {
+  selectAgent: (agentId: string) => {
     set((state) => {
       // Maximum 4 agents can be selected at once
       if (state.selectedAgentIds.length >= 4 && !state.selectedAgentIds.includes(agentId)) {
@@ -176,7 +171,7 @@ export const useStore = create<StoreState>((set, get) => ({
       };
     });
   },
-  unselectAgent: (agentId) => {
+  unselectAgent: (agentId: string) => {
     set((state) => ({
       selectedAgentIds: state.selectedAgentIds.filter(id => id !== agentId)
     }));
@@ -185,7 +180,7 @@ export const useStore = create<StoreState>((set, get) => ({
   // Strategies state
   strategies: defaultStrategies,
   selectedStrategy: "sequential",
-  setSelectedStrategy: (strategyId) => {
+  setSelectedStrategy: (strategyId: string) => {
     set({ selectedStrategy: strategyId });
   },
   
@@ -193,17 +188,17 @@ export const useStore = create<StoreState>((set, get) => ({
   conversations: [],
   currentConversation: null,
   messages: [],
-  addMessage: (message) => {
+  addMessage: (message: Message) => {
     set((state) => ({
       messages: [...state.messages, message]
     }));
   },
-  addMessages: (messages) => {
+  addMessages: (messages: Message[]) => {
     set((state) => ({
       messages: [...state.messages, ...messages]
     }));
   },
-  setCurrentConversation: (conversationId) => {
+  setCurrentConversation: (conversationId: string | null) => {
     set({ currentConversation: conversationId });
   },
   
@@ -222,7 +217,7 @@ export const useStore = create<StoreState>((set, get) => ({
   conversationStatus: 'idle',
   currentTurn: 0,
   
-  setConversationStatus: (status) => {
+  setConversationStatus: (status: 'idle' | 'active' | 'complete' | 'error') => {
     set({ conversationStatus: status });
   },
   
@@ -277,7 +272,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
     
     // Add user message
-    const userMessage = {
+    const userMessage: Message = {
       id: uuidv4(),
       content: query,
       role: "user",
@@ -293,7 +288,7 @@ export const useStore = create<StoreState>((set, get) => ({
     });
     
     // Add thinking message
-    const thinkingMessage = {
+    const thinkingMessage: Message = {
       id: `thinking-${Date.now()}`,
       content: "Thinking...",
       role: "assistant",
@@ -312,8 +307,7 @@ export const useStore = create<StoreState>((set, get) => ({
         selectedAgentIds,
         selectedStrategy,
         query,
-        apiSettings.useDemoMode,
-        apiSettings.n8nWorkflowType // Pass workflow type to n8n service
+        apiSettings.useDemoMode
       );
       
       // Remove thinking message
@@ -323,8 +317,8 @@ export const useStore = create<StoreState>((set, get) => ({
       
       if (response.success) {
         // Extract the summary and filter out summary objects
-        let summaryContent = null;
-        const filteredMessages = [];
+        let summaryContent: string = "";
+        const filteredMessages: Message[] = [];
         
         response.messages.forEach(msg => {
           if (msg.summary) {
@@ -392,6 +386,15 @@ export const useStore = create<StoreState>((set, get) => ({
       set({ isProcessing: false });
     }
   },
+  
+  // For useIsMobile hook integration
+  isMobileSidebarOpen: false,
+  setMobileSidebarOpen: (open: boolean) => {
+    set({ isMobileSidebarOpen: open });
+  },
+  toggleMobileSidebar: () => {
+    set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen }));
+  }
 }));
 
 // Selector for getting selected agents

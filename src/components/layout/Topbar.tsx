@@ -55,10 +55,7 @@ export function Topbar() {
         </Button>
         
         {/* New Connection Selector */}
-        <ConnectionSelector 
-          onBackendChange={handleBackendChange} 
-          onReset={handleResetConversation}
-        />
+        <ConnectionSelector/>
         
         {/* Theme toggle */}
         <Toggle 

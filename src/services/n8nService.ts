@@ -6,10 +6,10 @@ import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
 const N8N_BASE_URL = process.env.NEXT_PUBLIC_AGENT_API_URL || 'http://localhost:5678';
 
 // Workflow endpoints from environment variables with fallbacks
-const DEFAULT_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW || '/webhook/data-engineering-agent';
-const OPENAI_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OPENAI_WORKFLOW || '/webhook/data-engineering-agent';
-const OLLAMA_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW || '/webhook/data-engineering-agent';
-const CLAUDE_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW || '/webhook/data-engineering-agent';
+const DEFAULT_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_DEFAULT_WORKFLOW || '/webhook/dataengineering-common';
+const OPENAI_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OPENAI_WORKFLOW || '/webhook/dataengineering-common';
+const OLLAMA_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_OLLAMA_WORKFLOW || '/webhook/dataengineering-common';
+const CLAUDE_WORKFLOW_ENDPOINT = process.env.NEXT_PUBLIC_N8N_CLAUDE_WORKFLOW || '/webhook/dataengineering-common';
 
 // Define workflow endpoints mapping
 const WORKFLOW_ENDPOINTS: Record<string, string> = {
@@ -24,6 +24,7 @@ interface N8nRequestPayload {
   selectedAgentIds: string[];
   selectedStrategy: string;
   query: string;
+  modelType: string; // Added modelType parameter
 }
 
 interface N8nResponse {
@@ -63,25 +64,50 @@ export const n8nService = {
     
     // Otherwise, try to use the real n8n service
     try {
+      // Get the modelType - should be one of: 'default', 'openai', 'ollama', 'claude', 'demo'
+      // First try to use n8nWorkflowType from apiSettings since it should have the correct type
+      let modelType = apiSettings.n8nWorkflowType || "default";
+      
+      // Validate modelType to ensure it's one of the expected values
+      const validModelTypes = ['default', 'openai', 'ollama', 'claude', 'demo'];
+      if (!validModelTypes.includes(modelType)) {
+        console.warn(`Invalid modelType "${modelType}", falling back to "default"`);
+        modelType = "default";
+      }
+      
+      console.log(`Using model type: ${modelType}`);
+      
       const payload: N8nRequestPayload = {
         selectedAgentIds,
         selectedStrategy: strategyId,
-        query
+        query,
+        modelType // Include the model type in the payload
       };
 
-      // Get the appropriate workflow endpoint based on the current workflow type
-      const workflowEndpoint = this.getWorkflowEndpoint(n8nWorkflowType);
-      const apiUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+      // Determine if we should use direct connection or API route proxy
+      const isDockerEnvironment = this.isRunningInDocker();
       
-      console.log(`Submitting query to n8n (${n8nWorkflowType}):`, payload);
-      console.log(`Using endpoint: ${apiUrl}`);
+      let apiUrl;
+      if (isDockerEnvironment) {
+        // Use API route proxy when running in Docker
+        apiUrl = `/api/n8n/workflows/${n8nWorkflowType}`;
+        console.log(`Using API proxy for Docker environment: ${apiUrl}`);
+      } else {
+        // Use direct connection for local development
+        const workflowEndpoint = this.getWorkflowEndpoint(n8nWorkflowType);
+        apiUrl = `${N8N_BASE_URL}${workflowEndpoint}`;
+        console.log(`Using direct connection for local environment: ${apiUrl}`);
+      }
+      
+      console.log(`Submitting query to n8n with model type: ${modelType}`, payload);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -117,6 +143,37 @@ export const n8nService = {
         status: 'completed'
       };
     }
+  },
+  
+  /**
+   * Detects whether the application is running in a Docker environment
+   * This is a heuristic and may need adjustment based on your environment
+   */
+  isRunningInDocker(): boolean {
+    // Check if the hostname contains 'n8n' which would indicate Docker usage 
+    // You can modify this check based on your specific Docker setup
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    console.log('Hostname:===========', hostname);
+    console.log('Docker check:@@@@@@@@@@@', hostname.includes('n8n'));
+    
+    // Check if we're running in a development environment
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // If hostname contains 'localhost' or '127.0.0.1' and we're in development, 
+    // assume we're not in Docker
+    if ((hostname === 'localhost' || hostname === '127.0.0.1') && isDevelopment) {
+      return false;
+    }
+    
+    // Check if AGENT_API_URL contains Docker container references
+    const apiUrl = process.env.NEXT_PUBLIC_AGENT_API_URL || '';
+    if (apiUrl.includes('n8n:') || apiUrl.includes('ollama:')) {
+      return true;
+    }
+    
+    // Default to true to be safe - using the API proxy won't break anything
+    // even if we're not in Docker
+    return true;
   },
   
   /**
@@ -309,7 +366,8 @@ export const n8nService = {
     try {
       // Use Next.js API route as a proxy to avoid CORS issues
       const response = await fetch(`/api/n8n/health/${workflowType}`, {
-        method: 'GET'
+        method: 'GET',
+        cache: 'no-store'
       });
       
       if (!response.ok) {

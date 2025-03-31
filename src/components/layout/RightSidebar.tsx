@@ -22,10 +22,11 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConversationHistory } from "../conversation/ConversationHistory";
+import { StoreState } from "@/types";
 
 export function RightSidebar() {
   const pathname = usePathname();
-  const isRightSidebarOpen = useStore((state) => state.isRightSidebarOpen);
+  const isRightSidebarOpen = useStore((state: StoreState) => state.isRightSidebarOpen);
   const [activeTab, setActiveTab] = useState<string>("history");
 
   const isConversationPage = pathname === "/conversation";

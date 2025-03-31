@@ -9,19 +9,8 @@ import {
   CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Agent, Strategy, StrategyCardProps } from "@/types";
 
-interface Strategy {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-}
-
-interface StrategyCardProps {
-  strategy: Strategy;
-  isSelected: boolean;
-  onSelect: () => void;
-}
 
 export function StrategyCard({ strategy, isSelected, onSelect }: StrategyCardProps) {
   // Icon mapping

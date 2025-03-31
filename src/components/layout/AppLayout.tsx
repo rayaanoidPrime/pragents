@@ -7,6 +7,7 @@ import { RightSidebar } from "./RightSidebar";
 import { ChatControlBar } from "./ChatControlBar";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { StoreState } from "@/types";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,8 +16,8 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   // Zustand store controls for sidebar visibility
   // You can keep right sidebar controls as-is
-  const isRightSidebarOpen = useStore((state) => state.isRightSidebarOpen);
-  const toggleRightSidebar = useStore((state) => state.toggleRightSidebar);
+  const isRightSidebarOpen = useStore((state: StoreState) => state.isRightSidebarOpen);
+  const toggleRightSidebar = useStore((state: StoreState) => state.toggleRightSidebar);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -52,26 +53,26 @@ export function AppLayout({ children }: AppLayoutProps) {
           className="fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-300 ease-in-out"
           style={{ right: isRightSidebarOpen ? '260px' : '10px' }}
         >
-          <Button
+          {/* <Button
             variant="outline"
             size="icon"
             className="h-8 w-8 rounded-full bg-background shadow"
             onClick={toggleRightSidebar}
           >
             {isRightSidebarOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+          </Button> */}
         </div>
       </div>
 
       {/* Right Sidebar - Fixed position */}
-      <div
+      {/* <div
         className={cn(
           "fixed right-0 top-0 h-full z-30 transition-all duration-300 ease-in-out border-l",
           isRightSidebarOpen ? "w-64" : "w-16"
         )}
       >
         <RightSidebar />
-      </div>
+      </div> */}
     </div>
   );
 }

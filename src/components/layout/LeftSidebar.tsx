@@ -2,46 +2,51 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "@/components/theme-provider";
 import {
   MessageSquare,
   Play,
   History,
   Settings,
   Brain,
-  Moon,
-  Sun,
   User,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function LeftSidebar() {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
 
-  // Navigation items for the main app
+  // Navigation items for the main app with coming soon flags
   const navItems = [
     {
       label: "Conversation",
       href: "/conversation",
       icon: MessageSquare,
+      comingSoon: false,
+      comingSoonNext: false,
     },
     {
       label: "Direct Execution",
       href: "/execution",
       icon: Play,
+      comingSoon: true,
+      comingSoonNext: false,
     },
     {
       label: "History",
       href: "/history",
       icon: History,
+      comingSoon: false,
+      comingSoonNext: true,
     },
     {
       label: "Settings",
       href: "/settings",
       icon: Settings,
+      comingSoon: true,
+      comingSoonNext: false,
     },
   ];
 
@@ -68,6 +73,62 @@ export function LeftSidebar() {
         {navItems.map((item) => {
           const active = pathname === item.href;
           
+          // For coming soon items, we want to disable the link
+          if (item.comingSoon) {
+            return (
+              <TooltipProvider key={item.href}>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "flex justify-center items-center h-10 w-full my-1 relative cursor-not-allowed",
+                        "text-muted-foreground opacity-60"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="flex flex-col gap-1">
+                    <p>{item.label}</p>
+                    <div className="flex items-center text-xs gap-1">
+                      <Lock className="h-3 w-3 text-amber-500" />
+                      <span className="text-amber-500 font-medium">Coming Soon</span>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+
+          // For coming soon items, we want to disable the link
+          if (item.comingSoonNext) {
+            return (
+              <TooltipProvider key={item.href}>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "flex justify-center items-center h-10 w-full my-1 relative cursor-not-allowed",
+                        "text-muted-foreground opacity-60"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="flex flex-col gap-1">
+                    <p>{item.label}</p>
+                    <div className="flex items-center text-xs gap-1">
+                      <Lock className="h-3 w-3 text-amber-500" />
+                      <span className="text-amber-500 font-medium">Coming Soon(v0.0.2)</span>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+          
+          
+          // Regular navigation items
           return (
             <TooltipProvider key={item.href}>
               <Tooltip delayDuration={300}>
@@ -111,9 +172,7 @@ export function LeftSidebar() {
         <TooltipProvider>
           <Tooltip delayDuration={300}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
+              <ThemeToggle />
             </TooltipTrigger>
             <TooltipContent side="right">
               <p>Toggle Theme</p>

@@ -16,7 +16,7 @@ export const connectionValidator = {
   async validateN8nBase(): Promise<ConnectionResult> {
     try {
       // Use our own Next.js API route as a proxy to avoid CORS issues
-      const response = await fetch('/api/n8n/health/default', {
+      const response = await fetch('/api/n8n/health', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -28,7 +28,7 @@ export const connectionValidator = {
         const error = await response.json();
         return { 
           success: false, 
-          message: error.message || `n8n connection failed: ${response.status} ${response.statusText}` 
+          message: error.message || `n8n connection Base failed: ${response.status} ${response.statusText}` 
         };
       }
       
@@ -37,7 +37,7 @@ export const connectionValidator = {
       if (!result.n8nAvailable) {
         return {
           success: false,
-          message: 'Cannot connect to n8n webhook. Please ensure n8n is running and accessible.'
+          message: 'Cannot connect to n8n validateN8nBase webhook. Please ensure n8n is running and accessible.'
         };
       }
       
@@ -176,7 +176,7 @@ export const connectionValidator = {
       if (!response.ok) {
         return { 
           success: false, 
-          message: `n8n workflow validation failed: ${response.status} ${response.statusText}` 
+          message: `n8n workflow validateN8nWorkflow FAILED: ${response.status} ${response.statusText}` 
         };
       }
       
@@ -186,7 +186,7 @@ export const connectionValidator = {
       if (!result.n8nAvailable) {
         return {
           success: false,
-          message: 'Cannot connect to n8n webhook. Please ensure n8n is running and accessible.'
+          message: 'Cannot connect to n8n validateN8nWorkflow webhook. Please ensure n8n is running and accessible.'
         };
       }
       
@@ -224,6 +224,7 @@ export const connectionValidator = {
    * Validate the currently selected backend
    */
   async validateConnection(backendType: string, useDemoMode: boolean, workflowType?: string): Promise<ConnectionResult> {
+    console.log('Validating connection:', backendType, useDemoMode, workflowType);
     // If demo mode is enabled, we don't actually connect to any API
     if (useDemoMode) {
       return { success: true, message: 'Connected to Demo Mode' };

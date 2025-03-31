@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Loader2, SendHorizontal, Paperclip, Mic, Code, 
   Brain, Clock, MessageSquare, CornerDownRight, Sparkles,
-  RefreshCw, XCircle, ChevronDown, Bot
+  RefreshCw, XCircle
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
+import { Agent, Message } from '@/types';
 
 interface NextQuestion {
   id: string;
@@ -66,14 +67,6 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   }, [isLoading, conversationStatus]);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "inherit";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [inputValue]);
-
   // Handle removing the thinking message when responses come in
   useEffect(() => {
     if (isProcessing) {
@@ -87,7 +80,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       }
       setCoordinatorProcessing(false);
     }
-  }, [isProcessing, currentTurn]);
+  }, [isProcessing, currentTurn, conversationStatus, lastSummaryTurn]);
 
   // Add coordinator welcome message when conversation starts
   useEffect(() => {
@@ -100,7 +93,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       );
       
       if (!hasCoordinatorWelcome) {
-        const welcomeMessage = {
+        const welcomeMessage: Message = {
           id: uuidv4(),
           content: generateWelcomeMessage(selectedAgents),
           role: "assistant",
@@ -129,13 +122,14 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   }, [conversationStatus, selectedAgents, messages, hasShownWelcome, addMessage]);
 
 
-  // Filter messages to remove raw summary messages and preserve coordinator-formatted ones
-  const filterMessages = (messages: any[]) => {
+  // Filter messages to remove raw summary messages
+  const filterMessages = (messages: Message[]): Message[] => {
+    // Only filter out actual 'summary' role messages, not summary type messages
     return messages.filter(msg => msg.role !== 'summary');
   };
   
   // Handle FAQ and follow-up question selection without auto-submitting
-  const handleQuestionSelect = (question: string) => {
+  const handleQuestionSelect = (question: string): void => {
     setInputValue(question);
     
     // Focus the textarea after setting the value
@@ -144,7 +138,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (): Promise<void> => {
     if (!inputValue.trim() || isProcessing) return;
     
     // Submit query to n8n via our store action
@@ -164,7 +158,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -183,7 +177,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   }
 
   // Next Questions Panel
-  const NextQuestionsPanel = () => {
+  const NextQuestionsPanel = (): JSX.Element | null => {
     if (nextQuestions.length === 0) return null;
     return (
       <motion.div 
@@ -193,7 +187,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
         className="mt-8 mb-6"
       >
         <div className="flex flex-wrap gap-3 justify-center">
-          {nextQuestions.map(q => (
+          {nextQuestions.map((q) => (
             <motion.button
               key={q.id}
               initial={{ scale: 0.95 }}
@@ -216,7 +210,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
   };
 
   // Welcome Message for empty state
-  const WelcomeMessage = () => (
+  const WelcomeMessage = (): JSX.Element => (
     <div className="h-full flex flex-col items-center justify-center text-center p-8">
       <div className="text-6xl mb-6">💬</div>
       <h3 className="text-2xl font-medium mb-3 font-display">
@@ -302,204 +296,176 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
               </span>
             </h2>
             
-            {/* Add the ConnectionStatus component with improved styling */}
+            {/* Connection selector */}
             <div className="flex items-center gap-2">
               <ConnectionSelector />
-              
-              {/* {conversationStatus === "active" && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20 px-2 py-0.5">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span className="text-xs">Turn {currentTurn}/{currentStrategy?.maxTurns || '?'}</span>
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Current turn in the conversation</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => resetConversation()}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        <span className="sr-only">End Conversation</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>End current conversation</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )} */}
             </div>
           </div>
         </div>
         
-        {/* Messages area - Full width */}
-        <ScrollArea className="flex-1 px-4 py-6 w-full" ref={scrollAreaRef}>
-        {processedMessages.length === 0 ? (
-          <WelcomeMessage />
-        ) : (
-          <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
-            <AnimatePresence>
-              {filterMessages(processedMessages).map((msg) => (
-                <ChatMessage 
-                  key={msg.id} 
-                  message={{
-                    ...msg,
-                    timestamp: new Date(msg.createdAt),
-                    isPending: msg.type === "thinking",
-                    hasCode: msg.content?.includes('```'),
-                    isCoordinator: msg.agentId === "coordinator"
-                  }} 
-                  showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
+        {/* Structure the layout with fixed heights */}
+        <div className="flex flex-col h-full">
+          {/* Messages area - Takes exactly 80% of the height */}
+          <div style={{ height: "80%" }} className="overflow-hidden">
+            <ScrollArea className="h-full w-full px-4 py-6" ref={scrollAreaRef}>
+              {processedMessages.length === 0 ? (
+                <WelcomeMessage />
+              ) : (
+                <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
+                  <AnimatePresence>
+                    {filterMessages(processedMessages).map(msg => (
+                      <ChatMessage 
+                        key={msg.id} 
+                        message={{
+                          ...msg,
+                          timestamp: new Date(msg.createdAt),
+                          isPending: msg.type === "thinking",
+                          hasCode: msg.content ? msg.content.includes('```') : false,
+                          isCoordinator: msg.agentId === "coordinator"
+                        }} 
+                        showFeedback={msg.agentId !== "coordinator" && msg.role === "assistant" && msg.type !== "thinking"}
+                      />
+                    ))}
+                  </AnimatePresence>
+                  
+                  {/* Next questions */}
+                  {nextQuestions.length > 0 && conversationStatus === "active" && (
+                    <NextQuestionsPanel />
+                  )}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+          
+          {/* Input area - Fixed at 20% of the container height */}
+          <div style={{ height: "20%" }} className="border-t bg-background/90 backdrop-blur-sm w-full">
+            {conversationStatus === "idle" || conversationStatus === "active" ? (
+              <div className="h-full flex flex-col relative">
+                <Textarea
+                  ref={textareaRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    conversationStatus === "idle"
+                      ? "Enter a topic for agents to discuss..."
+                      : "Ask a follow-up question..."
+                  }
+                  className="h-full min-h-full pr-16 resize-none text-base w-full
+                    border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
+                  disabled={isProcessing}
                 />
-              ))}
-            </AnimatePresence>
-            
-            {/* Next questions */}
-            {nextQuestions.length > 0 && conversationStatus === "active" && (
-              <NextQuestionsPanel />
+                <div className="absolute right-3 bottom-3 flex space-x-1.5">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Paperclip className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Attach file</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Mic className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Voice input</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+                          disabled={isProcessing}
+                        >
+                          <Code className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Code snippet</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="submit"
+                          size="icon"
+                          className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                          disabled={
+                            inputValue.trim() === "" ||
+                            isProcessing ||
+                            selectedAgents.length === 0
+                          }
+                          onClick={handleSendMessage}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <SendHorizontal className="h-5 w-5" />
+                          )}
+                          <span className="sr-only">Send</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Send message</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            ) : conversationStatus === "complete" ? (
+              <div className="flex space-x-4 w-full p-4 h-full items-center justify-center">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-primary/20 text-base py-5 rounded-lg"
+                  onClick={() => resetConversation()}
+                >
+                  <RefreshCw className="h-5 w-5 mr-2 text-primary" />
+                  New Conversation
+                </Button>
+                <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-5 rounded-lg">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Save Discussion
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4 w-full p-4 h-full flex flex-col items-center justify-center">
+                <p className="text-base text-destructive">
+                  An error occurred. Please try starting a new conversation.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 text-base border-primary/20 py-5 rounded-lg"
+                  onClick={() => resetConversation()}
+                >
+                  Reset Conversation
+                </Button>
+              </div>
             )}
           </div>
-        )}
-      </ScrollArea>
-        
-        {/* Input area - Full width */}
-        <div className="border-t bg-background/90 backdrop-blur-sm w-full relative">
-          {conversationStatus === "idle" || conversationStatus === "active" ? (
-            <>
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  conversationStatus === "idle"
-                    ? "Enter a topic for agents to discuss..."
-                    : "Ask a follow-up question..."
-                }
-                className="min-h-[60px] max-h-[200px] pr-16 resize-none text-base w-full
-                  border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
-                disabled={isProcessing}
-              />
-              <div className="absolute right-3 bottom-3 flex space-x-1.5">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Paperclip className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Attach file</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Mic className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Voice input</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-                        disabled={isProcessing}
-                      >
-                        <Code className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Code snippet</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        size="icon"
-                        className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={
-                          inputValue.trim() === "" ||
-                          isProcessing ||
-                          selectedAgents.length === 0
-                        }
-                        onClick={handleSendMessage}
-                      >
-                        {isProcessing ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <SendHorizontal className="h-5 w-5" />
-                        )}
-                        <span className="sr-only">Send</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Send message</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </>
-          ) : conversationStatus === "complete" ? (
-            <div className="flex space-x-4 w-full p-4">
-              <Button 
-                variant="outline" 
-                className="flex-1 border-primary/20 text-base py-5 rounded-lg"
-                onClick={() => resetConversation()}
-              >
-                <RefreshCw className="h-5 w-5 mr-2 text-primary" />
-                New Conversation
-              </Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-5 rounded-lg">
-                <Sparkles className="h-5 w-5 mr-2" />
-                Save Discussion
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-4 w-full p-4">
-              <p className="text-base text-destructive">
-                An error occurred. Please try starting a new conversation.
-              </p>
-              <Button 
-                variant="outline" 
-                className="mt-4 text-base border-primary/20 py-5 rounded-lg"
-                onClick={() => resetConversation()}
-              >
-                Reset Conversation
-              </Button>
-            </div>
-          )}
         </div>
       </Card>
     </div>
@@ -507,7 +473,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
 }
 
 // Helper function to generate welcome message
-function generateWelcomeMessage(agents: any[]) {
+function generateWelcomeMessage(agents: Agent[]): string {
   return `
 ### Welcome to this multi-agent discussion
 
@@ -522,7 +488,7 @@ Let's begin our exploration of this topic.
 }
 
 // Helper function to generate summary message based on messages
-function generateSummaryMessage(messages: any[], currentTurn: number) {
+function generateSummaryMessage(messages: Message[], currentTurn: number): string {
   if (messages.length === 0) {
     return `
 ### Summary
@@ -532,19 +498,20 @@ The agents are still formulating their responses. I'll provide a summary once th
   }
   
   // Group messages by agent
-  const agentMessages: Record<string, any[]> = {};
+  const agentMessages: Record<string, Message[]> = {};
   
   messages.forEach(msg => {
-    if (!agentMessages[msg.agentId]) {
-      agentMessages[msg.agentId] = [];
+    const agentId = msg.agentId || '';
+    if (!agentMessages[agentId]) {
+      agentMessages[agentId] = [];
     }
-    agentMessages[msg.agentId].push(msg);
+    agentMessages[agentId].push(msg);
   });
   
   // Create summary points for each agent
   const summaryPoints = Object.entries(agentMessages).map(([agentId, msgs]) => {
     const agentName = msgs[0].agentName || 'Agent';
-    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content)}`;
+    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content || '')}`;
   }).join('\n');
   
   return `
@@ -566,7 +533,7 @@ function getKeyPointFromMessage(content: string): string {
   
   // Get the first sentence that's substantial
   const sentences = plainText.split(/\.\s+/);
-  const firstGoodSentence = sentences.find(s => s.length > 20) || sentences[0];
+  const firstGoodSentence = sentences.find(s => s.length > 20) || sentences[0] || '';
   
   if (firstGoodSentence.length > 100) {
     return firstGoodSentence.substring(0, 97) + '...';

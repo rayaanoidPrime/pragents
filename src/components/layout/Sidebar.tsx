@@ -39,21 +39,22 @@ import {
 } from '@/components/ui/tooltip';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { motion } from "framer-motion";
-import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
+import { useStore, useSelectedStrategy } from "@/store";
+import { StoreState, Agent, Strategy } from "@/types";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const agents = useStore(state => state.agents);
-  const selectedAgentIds = useStore(state => state.selectedAgentIds);
-  const selectAgent = useStore(state => state.selectAgent);
-  const deselectAgent = useStore(state => state.deselectAgent);
-  const setSelectedAgents = useStore(state => state.setSelectedAgents);
+  const agents = useStore((state:StoreState) => state.agents);
+  const selectedAgentIds = useStore((state:StoreState) => state.selectedAgentIds);
+  const selectAgent = useStore((state:StoreState) => state.selectAgent);
+  const deselectAgent = useStore((state:StoreState) => state.unselectAgent);
+  const setSelectedAgents = useStore((state:StoreState) => state.selectedAgentIds);
 
   // We also have strategies in the store:
-  const strategies = useStore(state => state.strategies);
-  const selectedStrategy = useStore(state => state.selectedStrategy);
-  const setSelectedStrategy = useStore(state => state.setSelectedStrategy);
+  const strategies = useStore((state:StoreState) => state.strategies);
+  const selectedStrategy = useStore((state:StoreState) => state.selectedStrategy);
+  const setSelectedStrategy = useStore((state:StoreState) => state.setSelectedStrategy);
 
   // UI local states
   const [tab, setTab] = useState<"agents" | "strategy">("agents");
@@ -89,7 +90,7 @@ export function Sidebar() {
   ];
 
   // Filtered agents
-  const filteredAgents = agents.filter(a => {
+  const filteredAgents = agents.filter((a:Agent) => {
     if (categoryFilter !== "all" && a.description?.toLowerCase().indexOf(categoryFilter) < 0 && a.id.indexOf(categoryFilter) < 0) {
       // Simple filter example; adjust to your needs
       return false;
@@ -101,7 +102,7 @@ export function Sidebar() {
   });
 
   // Get strategy details for min/max agent counts if needed
-  const strategyObj = strategies.find(s => s.id === selectedStrategy);
+  const strategyObj = strategies.find((s:Strategy) => s.id === selectedStrategy);
   const maxAgents = strategyObj ? (strategyObj as any).maxTurns || 4 : 4; // or some fallback
 
   // Toggle agent selection
@@ -270,8 +271,8 @@ export function Sidebar() {
                         Select up to {maxAgents} agents
                       </p>
                     ) : (
-                      selectedAgentIds.map(agentId => {
-                        const agent = agents.find(a => a.id === agentId);
+                      selectedAgentIds.map((agentId: string) => {
+                        const agent = agents.find((a:Agent) => a.id === agentId);
                         if (!agent) return null;
                         return (
                           <motion.div
@@ -301,7 +302,7 @@ export function Sidebar() {
 
                 {/* Agent list */}
                 <div className="space-y-2">
-                  {filteredAgents.map(agent => {
+                  {filteredAgents.map((agent:Agent) => {
                     const isSelected = selectedAgentIds.includes(agent.id);
                     const isSelectable = !isSelected && selectedAgentIds.length < maxAgents;
 
@@ -367,7 +368,7 @@ export function Sidebar() {
               <>
                 {/* Strategy list */}
                 <div className="space-y-3">
-                  {strategies.map(strategy => {
+                  {strategies.map((strategy:Strategy) => {
                     const isSelected = strategy.id === selectedStrategy;
                     return (
                       <ModernTooltip

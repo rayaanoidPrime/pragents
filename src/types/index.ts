@@ -2,16 +2,6 @@
  * Global type definitions for the application
  */
 
-// Agent types
-export interface Agent {
-  id: string;
-  name: string;
-  description: string;
-  avatar: string;
-  role?: AgentRole;
-  systemPrompt?: string;
-  color?: string;
-}
 
 export type AgentRole = 
   | 'architect' 
@@ -20,17 +10,38 @@ export type AgentRole =
   | 'scientist' 
   | 'governance';
 
-// Strategy types
-export interface Strategy {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  color?: string;
-  capabilities?: string[];
-  recommendedAgents?: string[];
-  maxTurns?: number;
+  export interface Strategy {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    color?: string;
+    capabilities?: string[];
+    recommendedAgents?: string[];
+    maxAgents?: number; // Add this property
+    maxTurns?: number;
+    turnsBeforeFinalAnswer?: number;
+  }
+
+
+export interface StrategyCardProps {
+  strategy: Strategy;
+  isSelected: boolean;
+  onSelect: () => void;
 }
+
+  
+  // Make sure your Agent interface also includes category property if needed
+  export interface Agent {
+    id: string;
+    name: string;
+    description: string;
+    avatar: string;
+    role?: AgentRole;
+    systemPrompt?: string;
+    color?: string;
+    category?: string; // Add this property if you're using it
+  }
 
 export type StrategyType = 
   | 'infrastructure' 
@@ -101,12 +112,15 @@ export interface UserSettings {
   maxHistoryItems: number;
 }
 
+export type N8nWorkflowType = 'default' | 'openai' | 'ollama' | 'claude' | 'demo';
+
+// Then in your ApiSettings interface, update the n8nWorkflowType property to use this type:
 export interface ApiSettings {
   apiUrl: string;
   apiKey: string;
   backendType: string;
   n8nConnectionStatus: 'connected' | 'disconnected' | 'checking';
-  n8nWorkflowType: 'default' | 'openai' | 'ollama' | 'claude' | 'demo'; // Specify workflow type
+  n8nWorkflowType: N8nWorkflowType; // Use the type here
   useDemoMode: boolean;
   
   // Connection validation fields
@@ -129,19 +143,20 @@ export interface Conversation {
 export interface Message {
   id: string;
   content: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'summary';
   agentId?: string;
   agentName?: string; 
   agentAvatar?: string;
   agentColor?: string;
   isCoordinator?: boolean;
   createdAt: Date;
-  type?: 'message' | 'thinking' | 'error' | 'summary';
+  // Update the type property to include all needed values:
+  type?: 'message' | 'thinking' | 'error' | 'summary' | 'welcome' | 'coordinator';
   turnNumber?: number;
   summary?: string;
   timestamp?: Date;
+  originalAgentId?: string;
 }
-
 export interface DatabaseSettings {
   connectionStatus: 'connected' | 'disconnected' | 'error';
   lastBackup?: Date;
@@ -159,6 +174,7 @@ export interface AppState {
   apiSettings: ApiSettings;
 }
 
+// And update StoreState to include new properties and typed functions
 export interface StoreState {
   // Agents state
   agents: Agent[];
@@ -185,6 +201,11 @@ export interface StoreState {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   
+  // Mobile sidebar state (added for useMobile hook)
+  isMobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebar: () => void;
+  
   // Processing state
   isProcessing: boolean;
   conversationStatus: 'idle' | 'active' | 'complete' | 'error';
@@ -198,7 +219,7 @@ export interface StoreState {
   
   // Connection validation functions
   validateConnection: () => Promise<boolean>;
-  setBackendType: (backendType: string, workflowType?: string, useDemoMode?: boolean) => Promise<boolean>;
+  setBackendType: (backendType: string, workflowType?: N8nWorkflowType, useDemoMode?: boolean) => Promise<boolean>;
   
   // Query submission
   submitQuery: (query: string) => Promise<void>;
@@ -271,3 +292,9 @@ export interface InfrastructureComponent {
 
 // Navigation helpers
 export type ActiveView = 'conversation' | 'execution' | 'history' | 'settings';
+
+interface AgentSelectorProps {
+  mode: "all" | "selected";
+  searchQuery?: string;
+  categoryFilter?: string;
+}
