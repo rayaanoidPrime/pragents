@@ -36,8 +36,8 @@ The fastest way to get started is using Docker Compose:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/data-engineering-agents.git
-cd data-engineering-agents
+git clone https://github.com/HotTechStack/dataagents.git
+cd dataagents
 
 # Start the application
 docker-compose up -d
@@ -96,7 +96,7 @@ Contributions are always welcome! Here's how you can help:
 
 ### 🐛 Bug Reports
 
-If you encounter any issues, please help us improve by [creating a bug report](https://github.com/yourusername/data-engineering-agents/issues/new?template=bug_report.md).
+If you encounter any issues, please help us improve by [creating a bug report](https://github.com/yourusername/dataagents/issues/new?template=bug_report.md).
 
 Include as much information as possible:
 - Steps to reproduce
