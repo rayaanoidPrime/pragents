@@ -18,7 +18,9 @@ https://github.com/user-attachments/assets/f591bc23-3a19-43eb-9c92-e4b5bb3ba57f
 
 <div align="center">
   <h3>💬 Data Agents, Really!</h3>
-  <p>Building a Practical Assistant that empowers Data Engineers to deliver results with speed and efficiency.</p>
+  <p>Data Agent is an agentic AI harnessing GenAI to automate and streamline data engineering workflows.  
+  By delivering complete, well-prepared data requests, it saves time and reduces bottlenecks across teams.</p>  
+  <p>Whether you’re a data engineer, analyst, or software developer, Data Agent accelerates insights and decision-making.<p>
 </div>
 
 ## ✨ Features
