@@ -9,6 +9,10 @@
 
 <br />
 
+
+https://github.com/user-attachments/assets/01bd162a-c5f6-48de-af43-8c11b378b609
+
+
 <div align="center">
   <h3>💬 DataEngineering AI Agents, Really!</h3>
   <p>Building a Practical Assistant that empowers Data Engineers to deliver results with speed and efficiency.</p>
