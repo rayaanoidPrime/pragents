@@ -1,4 +1,4 @@
-# 🤖 Data Engineering Agents Platform
+# 🤖 Data Agents Platform
 
 <div align="center">
   <img src="https://img.shields.io/badge/Status-Alpha-yellow" alt="Alpha Status" />
@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/f591bc23-3a19-43eb-9c92-e4b5bb3ba57f
 
 
 <div align="center">
-  <h3>💬 DataEngineering AI Agents, Really!</h3>
+  <h3>💬 Data Agents, Really!</h3>
   <p>Building a Practical Assistant that empowers Data Engineers to deliver results with speed and efficiency.</p>
 </div>
 
@@ -54,6 +54,24 @@ docker-compose up -d
 
 4. Visit http://localhost:3000 and start interacting with your agents!
 
+## 🧩 Running Locally
+
+If you prefer running the application without Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/HotTechStack/dataagents.git
+cd dataagents
+
+# Install dependencies
+pnpm install
+
+# Start the development server
+pnpm run dev
+```
+
+You can still use your own hosted n8n instance or the Docker integrated version while running the frontend locally.
+
 ## 🧠 Available Agents
 
 - **Data Architect** - Designs data infrastructure and systems
@@ -65,14 +83,17 @@ docker-compose up -d
 ## 🎯 Strategy Types
 
 
-## 🔮 Coming Soon
+## 🔮 Upcoming Features
 
-We're actively working on the following features:
+We're actively working on the following enhancements:
 
-- 🎯 **Strategy Types** - More Strategy Types backend for debate and Continous Discussion
+- 🎯 **Strategy Types** - More Strategy Types backend for debate and Continuous Discussion
 - 📝 **Code Execution** - Run and test code snippets directly in the chat
 - 🔄 **Workflow Builder** - Create custom agent workflows with a visual editor
 - 🌐 **Multi-source Data Connectors** - Connect to various data sources
+- 🏗️ **Data Engineering Specific MCP Server** - Optimized for data engineering workflows
+- 🧠 **Deep Thinking for Data Engineering** - Enhanced reasoning capabilities for complex data problems
+- 💾 **Database with histories** - Persistent conversation storage with vectordbs for semantic search and caching
 
 
 ## 🧩 Architecture
