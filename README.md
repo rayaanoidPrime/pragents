@@ -117,7 +117,7 @@ Contributions are always welcome! Here's how you can help:
 
 ### 🐛 Bug Reports
 
-If you encounter any issues, please help us improve by [creating a bug report](https://github.com/yourusername/dataagents/issues/new?template=bug_report.md).
+If you encounter any issues, please help us improve by [creating a bug report](https://github.com/HotTechStack/dataagents/issues/new?template=bug_report.md).
 
 Include as much information as possible:
 - Steps to reproduce
