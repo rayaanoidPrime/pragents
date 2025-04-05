@@ -90,7 +90,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
           <SyntaxHighlighter
             language={match[1]}
             style={vscDarkPlus}
-            customStyle={{ margin: 0, borderRadius: 0 }}
+            customStyle={{ margin: 0, borderRadius: 0, maxHeight: '300px', overflowY: 'auto' }}
             showLineNumbers
           >
             {String(children).replace(/\n$/, '')}
@@ -103,7 +103,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
       );
     },
     p({ children }: any) {
-      return <p className="mb-4 last:mb-0">{children}</p>;
+      return <p className="mb-4 last:mb-0 break-words">{children}</p>;
     },
     ul({ children }: any) {
       return <ul className="list-disc ml-6 mb-4 space-y-1">{children}</ul>;
@@ -112,13 +112,29 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
       return <ol className="list-decimal ml-6 mb-4 space-y-1">{children}</ol>;
     },
     li({ children }: any) {
-      return <li className="mb-1">{children}</li>;
+      return <li className="mb-1 break-words">{children}</li>;
     },
     h3({ children }: any) {
-      return <h3 className="text-lg font-semibold mt-6 mb-3">{children}</h3>;
+      return <h3 className="text-lg font-semibold mt-6 mb-3 break-words">{children}</h3>;
     },
     h4({ children }: any) {
-      return <h4 className="text-base font-semibold mt-4 mb-2">{children}</h4>;
+      return <h4 className="text-base font-semibold mt-4 mb-2 break-words">{children}</h4>;
+    },
+    // Adding these to handle other types of content
+    img({ src, alt, ...props }: any) {
+      return <img src={src} alt={alt} className="my-4 max-w-full rounded-lg" style={{ maxHeight: '300px' }} {...props} />;
+    },
+    pre({ children, ...props }: any) {
+      return <pre className="overflow-auto max-h-[300px] my-4" {...props}>{children}</pre>;
+    },
+    table({ children, ...props }: any) {
+      return (
+        <div className="overflow-x-auto my-4">
+          <table className="min-w-full border-collapse border border-border" {...props}>
+            {children}
+          </table>
+        </div>
+      );
     },
   };
 
@@ -152,7 +168,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
       >
         <div className="flex-1 max-w-xl">
           <div className="bg-primary/10 dark:bg-primary/20 text-foreground p-4 rounded-xl rounded-tr-sm shadow-sm">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed break-words">{message.content}</p>
           </div>
           <div className="flex justify-end mt-1">
             <span className="text-xs text-muted-foreground">
@@ -184,12 +200,12 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3 shrink-0 mt-1">
               {message.agentAvatar || "👨‍💼"}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0"> {/* Added min-width:0 to enable text wrapping */}
               <div className="flex items-center">
-                <h4 className="font-medium text-primary">{message.agentName || "Coordinator"}</h4>
+                <h4 className="font-medium text-primary truncate">{message.agentName || "Coordinator"}</h4>
                 <Badge 
                   variant="outline" 
-                  className="ml-2 bg-primary/5 text-primary text-xs border-primary/20 px-1.5 py-0"
+                  className="ml-2 bg-primary/5 text-primary text-xs border-primary/20 px-1.5 py-0 whitespace-nowrap"
                 >
                   System
                 </Badge>
@@ -201,7 +217,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
                   <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
               ) : (
-                <div className="mt-2 prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                <div className="mt-2 prose prose-sm dark:prose-invert max-w-none leading-relaxed overflow-hidden">
                   <ReactMarkdown components={components}>
                     {message.content}
                   </ReactMarkdown>
@@ -228,13 +244,13 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
       <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 mt-1">
         {message.agentAvatar || message.agentName?.[0] || "A"}
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0"> {/* Added min-width:0 to enable text wrapping */}
         <div className="flex items-center">
-          <h4 className="font-medium" style={{ color: message.agentColor || "#6366F1" }}>
+          <h4 className="font-medium truncate" style={{ color: message.agentColor || "#6366F1" }}>
             {message.agentName || "Agent"}
           </h4>
           {message.isPending && (
-            <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-500 text-xs border-yellow-500/20">
+            <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-500 text-xs border-yellow-500/20 whitespace-nowrap">
               <span className="animate-pulse">●</span>
               <span className="ml-1">Typing...</span>
             </Badge>
@@ -242,7 +258,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
         </div>
         <div
           className={cn(
-            "mt-1.5 bg-card border rounded-xl p-4 text-sm shadow-sm",
+            "mt-1.5 bg-card border rounded-xl p-4 text-sm shadow-sm overflow-hidden",
             message.isPending && "border-dashed"
           )}
         >
@@ -253,7 +269,7 @@ export function ChatMessage({ message, showFeedback = true }: ChatMessageProps) 
               <div className="w-2 h-2 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+            <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed overflow-hidden">
               <ReactMarkdown components={components}>
                 {message.content}
               </ReactMarkdown>
