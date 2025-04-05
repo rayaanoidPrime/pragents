@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   Loader2, SendHorizontal, Paperclip, Mic, Code, 
-  Brain, Clock, MessageSquare, CornerDownRight, Sparkles,
+  Brain, MessageSquare, CornerDownRight, Sparkles,
   RefreshCw, XCircle
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "./ChatMessage";
 import { useStore, useSelectedAgents, useSelectedStrategy } from "@/store";
-import { Agent, Message } from '@/types';
+import { Message, Agent } from "@/types";
 
 interface NextQuestion {
   id: string;
@@ -66,6 +66,16 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
       textareaRef.current.focus();
     }
   }, [isLoading, conversationStatus]);
+
+  // Auto-resize textarea within its container
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "inherit";
+      const maxHeight = Math.floor(window.innerHeight * 0.15); // Max 15% of viewport height
+      const newHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, [inputValue]);
 
   // Handle removing the thinking message when responses come in
   useEffect(() => {
@@ -303,15 +313,15 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
           </div>
         </div>
         
-        {/* Structure the layout with fixed heights */}
-        <div className="flex flex-col h-full">
-          {/* Messages area - Takes exactly 80% of the height */}
-          <div style={{ height: "80%" }} className="overflow-hidden">
+        {/* Main layout with fixed input at bottom */}
+        <div className="flex flex-col h-[calc(100vh-8rem)]"> {/* Adjust height as needed */}
+          {/* Chat messages area */}
+          <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full w-full px-4 py-6" ref={scrollAreaRef}>
               {processedMessages.length === 0 ? (
                 <WelcomeMessage />
               ) : (
-                <div className="space-y-6 pb-4 w-full max-w-4xl mx-auto">
+                <div className="space-y-6 pb-20 w-full max-w-4xl mx-auto">
                   <AnimatePresence>
                     {filterMessages(processedMessages).map(msg => (
                       <ChatMessage 
@@ -337,8 +347,8 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
             </ScrollArea>
           </div>
           
-          {/* Input area - Fixed at 20% of the container height */}
-          <div style={{ height: "20%" }} className="border-t bg-background/90 backdrop-blur-sm w-full">
+          {/* Fixed input area - Always at bottom */}
+          <div className="h-32 min-h-[8rem] border-t bg-background/90 backdrop-blur-sm w-full z-10">
             {conversationStatus === "idle" || conversationStatus === "active" ? (
               <div className="h-full flex flex-col relative">
                 <Textarea
@@ -351,7 +361,7 @@ export function ChatInterface({ isLoading = false }: ChatInterfaceProps) {
                       ? "Enter a topic for agents to discuss..."
                       : "Ask a follow-up question..."
                   }
-                  className="h-full min-h-full pr-16 resize-none text-base w-full
+                  className="flex-1 overflow-auto pr-16 resize-none text-base w-full
                     border-0 focus-visible:ring-0 focus-visible:outline-none rounded-none px-4 py-4 font-sans"
                   disabled={isProcessing}
                 />
@@ -509,10 +519,12 @@ The agents are still formulating their responses. I'll provide a summary once th
   });
   
   // Create summary points for each agent
-  const summaryPoints = Object.entries(agentMessages).map(([agentId, msgs]) => {
-    const agentName = msgs[0].agentName || 'Agent';
-    return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content || '')}`;
-  }).join('\n');
+  const summaryPoints = Object.entries(agentMessages)
+    .filter(([agentId]) => agentId !== 'coordinator' && agentId !== '')
+    .map(([agentId, msgs]) => {
+      const agentName = msgs[0].agentName || 'Agent';
+      return `- **${agentName}** highlighted the importance of ${getKeyPointFromMessage(msgs[0].content || '')}`;
+    }).join('\n');
   
   return `
 ### Summary
