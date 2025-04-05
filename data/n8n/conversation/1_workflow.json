@@ -563,7 +563,7 @@
         "messages": {
           "messageValues": [
             {
-              "message": "=To maintain context and fully understand the user's question, always review the previous conversation between you and him before providing an answer. Always ensure generating output without s JSON Parsing ERROR. Take into account the schema of the parser.\nThis is the previous conversation: {{ $('Aggregate').item.json[\"context\"].map(m => ` Human: ${m.human || 'undefined'} AI Assistant: ${m.ai || 'undefined'} `).join('') }}"
+              "message": "=To maintain context and fully understand the user's question, always review the previous conversation between you and him before providing an answer. Always ensure generating output without s JSON Parsing ERROR. Avoid ASCII. Avoid embedded markdown code fences. Avoid unescaped newlines. To represent a newline within the string's value, it must be escaped as \\\\n.\\nThis is the previous conversation: {{ $('Aggregate').item.json[\"context\"].map(m => ` Human: ${m.human || 'undefined'} AI Assistant: ${m.ai || 'undefined'} `).join('') }}"
             }
           ]
         }
