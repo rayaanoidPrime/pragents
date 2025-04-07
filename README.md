@@ -9,7 +9,12 @@
 
 <br />
 
-<https://github.com/user-attachments/assets/f591bc23-3a19-43eb-9c92-e4b5bb3ba57f>
+
+
+https://github.com/user-attachments/assets/f591bc23-3a19-43eb-9c92-e4b5bb3ba57f
+
+
+
 
 <div align="center">
   <h3>💬 Data Agents, Really!</h3>
@@ -41,15 +46,14 @@ docker-compose up -d
 
 ### 🔧 Setup Steps
 
-1. Once the containers are running, go to n8n at <http://localhost:5678>
+1. Once the containers are running, go to n8n at http://localhost:5678
 2. Upload the workflow from the `agents/n8n/conversations` directory
 3. Configure your API keys:
-
    - In Docker Compose: update OpenAI/Claude/Gemini key
    - In n8n workflow: click on OpenAI/Claude/Gemini model block and add your key
    - See [n8n documentation](https://docs.n8n.io/integrations/builtin/credentials/openai/#using-api-key) for more details
 
-4. Visit <http://localhost:3000> and start interacting with your agents!
+4. Visit http://localhost:3000 and start interacting with your agents!
 
 ## 🧩 Running Locally
 
@@ -79,6 +83,7 @@ You can still use your own hosted n8n instance or the Docker integrated version 
 
 ## 🎯 Strategy Types
 
+
 ## 🔮 Upcoming Features
 
 We're actively working on the following enhancements:
@@ -90,6 +95,7 @@ We're actively working on the following enhancements:
 - 🏗️ **Data Engineering Specific MCP Server** - Optimized for data engineering workflows
 - 🧠 **Deep Thinking for Data Engineering** - Enhanced reasoning capabilities for complex data problems
 - 💾 **Database with histories** - Persistent conversation storage with vectordbs for semantic search and caching
+
 
 ## 🧩 Architecture
 
@@ -115,7 +121,6 @@ Contributions are always welcome! Here's how you can help:
 If you encounter any issues, please help us improve by [creating a bug report](https://github.com/HotTechStack/dataagents/issues/new?template=bug_report.md).
 
 Include as much information as possible:
-
 - Steps to reproduce
 - Expected behavior
 - Actual behavior
@@ -125,4 +130,3 @@ Include as much information as possible:
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
